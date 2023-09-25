@@ -5,5 +5,5 @@ This project is referenced to `mmWave_Demo_Visualizer (v2.1.0)`, [`ibaiGorordo/I
 ## Library dependencies
 
 ```cli
-python -m pip install numpy pyserial
+python -m pip install numpy==1.26.0 pyserial==3.5
 ```
