@@ -668,6 +668,10 @@ class Configuration_2_1_0:
   }
 
   configParameters: dict[str, None] = {
+    "numRxAnt": None, 
+    "numTxAnt": None, 
+    "numVirtualAntennas": None, 
+    "framePeriodicity": None, 
     "numDopplerBins": None, 
     "numRangeBins": None, 
     "rangeResolutionMeters": None, 
@@ -678,7 +682,7 @@ class Configuration_2_1_0:
   }
 
   def __init__(self, platform: str):
-    self.logger = Log.Logger(fileName="Configuration_2_1_0.log")
+    self.logger = Log.Logger(fileName="Log/Configuration_2_1_0.log")
     if platform == "xWR14xx":
       self.platform = platform
 
@@ -781,15 +785,15 @@ class Configuration_2_1_0:
         self.commandParameters["cfarCfg"]["ThresholdScale"] = int(units[7])
       if units[0] == "peakGrouping": 
         # self.commandParameters["peakGrouping"]["subFrameIdx"] = None
-        self.commandParameters["peakGrouping"]["scheme"] = int(units[2])
-        self.commandParameters["peakGrouping"]["peakGroupingInRangeDirection"] = int(units[3])
-        self.commandParameters["peakGrouping"]["peakGroupingInDopplerDirection"] = int(units[4])
-        self.commandParameters["peakGrouping"]["startRangeIndex"] = int(units[5])
-        self.commandParameters["peakGrouping"]["endRangeIndex"] = int(units[6])
+        self.commandParameters["peakGrouping"]["scheme"] = int(units[1])
+        self.commandParameters["peakGrouping"]["peakGroupingInRangeDirection"] = int(units[2])
+        self.commandParameters["peakGrouping"]["peakGroupingInDopplerDirection"] = int(units[3])
+        self.commandParameters["peakGrouping"]["startRangeIndex"] = int(units[4])
+        self.commandParameters["peakGrouping"]["endRangeIndex"] = int(units[5])
       if units[0] == "multiObjBeamForming": 
         # self.commandParameters["multiObjBeamForming"]["subFrameIdx"] = None
         self.commandParameters["multiObjBeamForming"]["featureEnabled"] = int(units[1])
-        self.commandParameters["multiObjBeamForming"]["threshold"] = int(units[2])
+        self.commandParameters["multiObjBeamForming"]["threshold"] = float(units[2])
       if units[0] == "calibDcRangeSig": 
         # self.commandParameters["calibDcRangeSig"]["subFrameIdx"] = None
         self.commandParameters["calibDcRangeSig"]["enabled"] = int(units[1])
@@ -802,12 +806,12 @@ class Configuration_2_1_0:
       if units[0] == "clutterRemoval": 
         self.commandParameters["clutterRemoval"]["enabled"] = int(units[1])
       if units[0] == "compRangeBiasAndRxChanPhase": 
-        self.commandParameters["compRangeBiasAndRxChanPhase"]["rangeBias"] = int(units[1])
+        self.commandParameters["compRangeBiasAndRxChanPhase"]["rangeBias"] = float(units[1])
         self.commandParameters["compRangeBiasAndRxChanPhase"]["setOfComplexValue"] = [int(value) for value in units[2:]] # length == self.configParameters["numVirtualAntennas"]
       if units[0] == "measureRangeBiasAndRxChanPhase": 
         self.commandParameters["measureRangeBiasAndRxChanPhase"]["enabled"] = int(units[1])
-        self.commandParameters["measureRangeBiasAndRxChanPhase"]["targetDistance"] = int(units[2])
-        self.commandParameters["measureRangeBiasAndRxChanPhase"]["searchWin"] = int(units[3])
+        self.commandParameters["measureRangeBiasAndRxChanPhase"]["targetDistance"] = float(units[2])
+        self.commandParameters["measureRangeBiasAndRxChanPhase"]["searchWin"] = float(units[3])
       if units[0] == "nearFieldCfg": 
         # self.commandParameters["nearFieldCfg"]["subFrameIdx"] = None
         self.commandParameters["nearFieldCfg"]["enabled"] = int(units[1])
@@ -832,16 +836,19 @@ class Configuration_2_1_0:
         self.commandParameters["lvdsStreamCfg"]["dataFmt"] = int(units[2])
         self.commandParameters["lvdsStreamCfg"]["enableSW"] = int(units[3])
       if units[0] == "sensorStart": 
-        self.commandParameters["sensorStart"]["doReconfig"] = int(units[1])
-        pass
+        if len(units) > 1:
+          self.commandParameters["sensorStart"]["doReconfig"] = int(units[1])
+          self.parse_configParameters_1443()
       if units[0] == "sensorStop": 
         pass
       if units[0] == "flushCfg": 
+        # todo: flush commandParameters
         pass
     except: 
-      self.logger.log(event="parse_commandParameters_1443", level="Error", message="Parse error from: `{command}`".format(str(command)))
+      self.logger.log(event="parse_commandParameters_1443", level="Error", message="Parse error from: `{command}`".format(command=str(command)))
+    self.parse_configParameters_1443(verificationLevel="Warn")
 
-  def parse_configParameters_1443(self):
+  def parse_configParameters_1443(self, verificationLevel="Error"):
 
     def decode_mask(mask: int) -> int:
       value = 0
@@ -849,43 +856,67 @@ class Configuration_2_1_0:
         mask >>= 1
         value += 1
       return value
-    
-    self.configParameters["numRxAnt"] = decode_mask(mask=int(self.commandParameters["channelCfg"]["rxChannelEn"]))
-    self.configParameters["numTxAnt"] = decode_mask(mask=int(self.commandParameters["channelCfg"]["txChannelEn"]))
-    self.configParameters["numVirtualAntennas"] = self.configParameters["numRxAnt"] * self.configParameters["numTxAnt"]
 
-    startFreq = self.commandParameters["profileCfg"]["startFreq"]
-    idleTime = self.commandParameters["profileCfg"]["idleTime"]
-    rampEndTime = self.commandParameters["profileCfg"]["rampEndTime"]
-    freqSlopeConst = self.commandParameters["profileCfg"]["freqSlopeConst"]
-    numAdcSamples = self.commandParameters["profileCfg"]["numAdcSamples"]
-    numAdcSamplesRoundTo2 = 1
-    while numAdcSamples > numAdcSamplesRoundTo2: numAdcSamplesRoundTo2 = numAdcSamplesRoundTo2 << 1
-    digOutSampleRate = self.commandParameters["profileCfg"]["digOutSampleRate"]
+    Missing_Command = False
 
-    chirpStartIdx = self.commandParameters["frameCfg"]["chirpStartIndex"]
-    chirpEndIdx = self.commandParameters["frameCfg"]["chirpEndIndex"]
-    numLoops = self.commandParameters["frameCfg"]["numberOfLoops"]
-    numFrames = self.commandParameters["frameCfg"]["numberOfFrames"]
-    self.configParameters["framePeriodicity"] = self.commandParameters["frameCfg"]["framePeriodicity"]
-    numChirpsPerFrame = (chirpEndIdx - chirpStartIdx + 1) * numLoops
+    if not Missing_Command: 
+      try:
+        self.configParameters["numRxAnt"] = decode_mask(mask=int(self.commandParameters["channelCfg"]["rxChannelEn"]))
+        self.configParameters["numTxAnt"] = decode_mask(mask=int(self.commandParameters["channelCfg"]["txChannelEn"]))
+        self.configParameters["numVirtualAntennas"] = self.configParameters["numRxAnt"] * self.configParameters["numTxAnt"]
+      except TypeError:
+        Missing_Command = True
+        self.logger.log(event="parse_configParameters_1443", level=verificationLevel, message="Missing command: `channelCfg`")
 
-    self.configParameters["numDopplerBins"] = numChirpsPerFrame / self.configParameters["numTxAnt"]
-    self.configParameters["numRangeBins"] = numAdcSamplesRoundTo2
-    self.configParameters["rangeResolutionMeters"] = (3e8 * digOutSampleRate * 1e3) / (2 * freqSlopeConst * 1e12 * numAdcSamples)
-    self.configParameters["rangeIdxToMeters"] = (3e8 * digOutSampleRate * 1e3) / (2 * freqSlopeConst * 1e12 * self.configParameters["numRangeBins"])
-    self.configParameters["dopplerResolutionMps"] = 3e8 / (2 * startFreq * 1e9 * (idleTime + rampEndTime) * 1e-6 * self.configParameters["numDopplerBins"] * self.configParameters["numTxAnt"])
-    self.configParameters["maxRange"] = (300 * 0.9 * digOutSampleRate)/(2 * freqSlopeConst * 1e3)
-    self.configParameters["maxVelocity"] = 3e8 / (4 * startFreq * 1e9 * (idleTime + rampEndTime) * 1e-6 * self.configParameters["numTxAnt"])
+    if not Missing_Command: 
+      try:
+        startFreq = self.commandParameters["profileCfg"]["startFreq"]
+        idleTime = self.commandParameters["profileCfg"]["idleTime"]
+        rampEndTime = self.commandParameters["profileCfg"]["rampEndTime"]
+        freqSlopeConst = self.commandParameters["profileCfg"]["freqSlopeConst"]
+        numAdcSamples = self.commandParameters["profileCfg"]["numAdcSamples"]
+        numAdcSamplesRoundTo2 = 1
+        while numAdcSamples > numAdcSamplesRoundTo2: numAdcSamplesRoundTo2 = numAdcSamplesRoundTo2 << 1
+        digOutSampleRate = self.commandParameters["profileCfg"]["digOutSampleRate"]
+      except TypeError:
+        Missing_Command = True
+        self.logger.log(event="parse_configParameters_1443", level=verificationLevel, message="Missing command: `profileCfg`")
 
-    self.configParameters["thresholdScaleDb"] = (self.commandParameters["cfarCfg"]["ThresholdScale"] * 6 * 2**math.ceil(math.log2(self.configParameters["numVirtualAntennas"]))) // (512 * self.configParameters["numVirtualAntennas"])
+    if not Missing_Command: 
+      try:
+        chirpStartIdx = self.commandParameters["frameCfg"]["chirpStartIndex"]
+        chirpEndIdx = self.commandParameters["frameCfg"]["chirpEndIndex"]
+        numLoops = self.commandParameters["frameCfg"]["numberOfLoops"]
+        numFrames = self.commandParameters["frameCfg"]["numberOfFrames"]
+        self.configParameters["framePeriodicity"] = self.commandParameters["frameCfg"]["framePeriodicity"]
+        numChirpsPerFrame = (chirpEndIdx - chirpStartIdx + 1) * numLoops
+      except TypeError:
+        Missing_Command = True
+        self.logger.log(event="parse_configParameters_1443", level=verificationLevel, message="Missing command: `frameCfg`")
 
-  def calc_CfarRangeThreshold_dB_1443(self, threshold_dB):
+    if not Missing_Command: 
+      try:
+        self.configParameters["thresholdScaleDb"] = (self.commandParameters["cfarCfg"]["ThresholdScale"] * 6 * 2**math.ceil(math.log2(self.configParameters["numVirtualAntennas"]))) // (512 * self.configParameters["numVirtualAntennas"])
+      except TypeError:
+        Missing_Command = True
+        self.logger.log(event="parse_configParameters_1443", level=verificationLevel, message="Missing command: `cfarCfg`")
+
+    if not Missing_Command: 
+      self.configParameters["numDopplerBins"] = numChirpsPerFrame / self.configParameters["numTxAnt"]
+      self.configParameters["numRangeBins"] = numAdcSamplesRoundTo2
+      self.configParameters["rangeResolutionMeters"] = (3e8 * digOutSampleRate * 1e3) / (2 * freqSlopeConst * 1e12 * numAdcSamples)
+      self.configParameters["rangeIdxToMeters"] = (3e8 * digOutSampleRate * 1e3) / (2 * freqSlopeConst * 1e12 * self.configParameters["numRangeBins"])
+      self.configParameters["dopplerResolutionMps"] = 3e8 / (2 * startFreq * 1e9 * (idleTime + rampEndTime) * 1e-6 * self.configParameters["numDopplerBins"] * self.configParameters["numTxAnt"])
+      self.configParameters["maxRange"] = (300 * 0.9 * digOutSampleRate)/(2 * freqSlopeConst * 1e3)
+      self.configParameters["maxVelocity"] = 3e8 / (4 * startFreq * 1e9 * (idleTime + rampEndTime) * 1e-6 * self.configParameters["numTxAnt"])
+      self.logger.log(event="parse_configParameters_1443", level="information", message="parse configParameters success")
+
+  def calc_CfarRangeThreshold_dB_1443(self, threshold_dB: int|float):
     if threshold_dB<0 or threshold_dB>100: 
       return self.commandParameters["cfarCfg"]["ThresholdScale"]
     return (threshold_dB * 512 * self.configParameters["numVirtualAntennas"]) // (6 * 2**math.ceil(math.log2(self.configParameters["numVirtualAntennas"])))
   
-  def command_CfarRangeThreshold_dB_1443(self, threshold_dB) -> str:
+  def command_CfarRangeThreshold_dB_1443(self, threshold_dB: int|float) -> str:
     self.commandParameters["cfarCfg"]["ThresholdScale"] = self.calc_CfarRangeThreshold_dB_1443(threshold_dB)
     return ' '.join(["cfarCfg", 
             str(self.commandParameters["cfarCfg"]["procDirection"]), 

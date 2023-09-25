@@ -16,6 +16,9 @@ class xWR14xx:
   Ctrl_port: serial.Serial | None = None
   Data_port: serial.Serial | None = None
 
+  Ctrl_port_baudrate: int | None = None
+  Data_port_baudrate: int | None = None
+
   State: str | None = None
 
   Config: Configuration.Configuration_2_1_0 | None = None
@@ -24,12 +27,15 @@ class xWR14xx:
 
   def __init__(self, Ctrl_port_name: str, Data_port_name: str, Ctrl_port_baudrate: int = 115200, Data_port_baudrate: int = 921600):
 
+    self.Ctrl_port_baudrate = Ctrl_port_baudrate
     self.Ctrl_port = serial.Serial(port=Ctrl_port_name, baudrate=Ctrl_port_baudrate)
     SerialTool.print_serial_info(port=self.Ctrl_port, Name="Ctrl port")
+
+    self.Data_port_baudrate = Data_port_baudrate
     self.Data_port = serial.Serial(port=Data_port_name, baudrate=Data_port_baudrate)
     SerialTool.print_serial_info(port=self.Data_port, Name="Data port")
 
-    self.logger = Log.Logger(fileName="xWR14xx.log")
+    self.logger = Log.Logger(fileName="Log/xWR14xx.log")
 
     self.Config = Configuration.Configuration_2_1_0(platform="xWR14xx")
 
@@ -40,7 +46,7 @@ class xWR14xx:
     self.Data_port.close()
 
   def __str__(self) -> str:
-    return "xWR14xx('{Ctrl_port}', '{Data_port}', '{Ctrl_port_baudrate}', '{Data_port_baudrate}')"
+    return "xWR14xx('{Ctrl_port}', '{Data_port}', {Ctrl_port_baudrate}, {Data_port_baudrate})".format(Ctrl_port=self.Ctrl_port.name, Data_port=self.Data_port.name, Ctrl_port_baudrate=self.Ctrl_port_baudrate, Data_port_baudrate=self.Data_port_baudrate)
 
   def configure_unit(self, command: str, wait: float | int = 0.05, echo: bool = False):
     """unit configuration
@@ -50,11 +56,12 @@ class xWR14xx:
       wait (float | int, optional): Configured wait delay. Defaults to 0.1.
       echo (bool, optional): Display configuration instructions. Defaults to False.
     """
-    self.Ctrl_port.write(command.rstrip('\r\n').__add__('\n').encode())
-    self.Config.parse_commandParameters_1443(command=command)
+    command = command.rstrip('\n').rstrip('\r')
+    self.Ctrl_port.write(command.__add__('\n').encode())
 
-    self.logger.log(event="config", level="logging", message="command: `{}`".format(command))
-    if echo: print(command.rstrip('\n').rstrip('\r'))
+    self.Config.parse_commandParameters_1443(command=command)
+    self.logger.log(event="{}.config".format(self.__str__()), level="logging", message="command: `{command}`".format(command=command))
+    if echo: print(command)
 
     command_main: str = command.split(' ')[0]
     if command_main == "sensorStart":
@@ -90,11 +97,8 @@ class xWR14xx:
       
 # %%
 if __name__ == '__main__':
-  device = xWR14xx(
-    Ctrl_port_name="COM3", 
-    Data_port_name="COM4", 
-    Ctrl_port_baudrate=115200, 
-    Data_port_baudrate=921600
-    )
-  device.configure_file(echo=True)
+  device = xWR14xx(Ctrl_port_name="COM3", Data_port_name="COM4", Ctrl_port_baudrate=115200, Data_port_baudrate=921600)
+  device.configure_file(CFG_file_name="Profile\profile.cfg")
+  device.configure(device.Config.command_CfarRangeThreshold_dB_1443(threshold_dB=8))
+  device.configure(device.Config.command_RemoveStaticClutter())
 # %%
