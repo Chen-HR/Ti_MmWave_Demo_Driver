@@ -700,6 +700,7 @@ class Configuration_2_1_0:
         self.commandParameters["channelCfg"]["rxChannelEn"] = int(units[1])
         self.commandParameters["channelCfg"]["txChannelEn"] = int(units[2])
         self.commandParameters["channelCfg"]["cascading"] = int(units[3])
+        self.parse_configParameters_1443(verificationLevel="Warn")
       if units[0] == "adcCfg": 
         self.commandParameters["adcCfg"]["numADCBits"] = int(units[1])
         self.commandParameters["adcCfg"]["adcOutputFmt"] = int(units[2])
@@ -724,6 +725,7 @@ class Configuration_2_1_0:
         self.commandParameters["profileCfg"]["hpfCornerFreq1"] = int(units[12])
         self.commandParameters["profileCfg"]["hpfCornerFreq2"] = int(units[13])
         self.commandParameters["profileCfg"]["rxGain"] = int(units[14])
+        self.parse_configParameters_1443(verificationLevel="Warn")
       if units[0] == "chirpCfg": 
         self.commandParameters["chirpCfg"]["chirpStartIndex"] = int(units[1])
         self.commandParameters["chirpCfg"]["chirpEndIndex"] = int(units[2])
@@ -749,6 +751,7 @@ class Configuration_2_1_0:
         self.commandParameters["frameCfg"]["framePeriodicity"] = float(units[5])
         self.commandParameters["frameCfg"]["triggerSelect"] = int(units[6])
         self.commandParameters["frameCfg"]["frameTriggerDelay"] = float(units[7])
+        self.parse_configParameters_1443(verificationLevel="Warn")
       if units[0] == "advFrameCfg": 
         self.commandParameters["advFrameCfg"]["numOfSubFrames"] = int(units[1])
         self.commandParameters["advFrameCfg"]["forceProfile"] = int(units[2])
@@ -783,6 +786,7 @@ class Configuration_2_1_0:
         self.commandParameters["cfarCfg"]["divShift"] = int(units[5])
         self.commandParameters["cfarCfg"]["cyclicModeOrWrappedAroundMode"] = int(units[6])
         self.commandParameters["cfarCfg"]["ThresholdScale"] = int(units[7])
+        self.parse_configParameters_1443(verificationLevel="Warn")
       if units[0] == "peakGrouping": 
         # self.commandParameters["peakGrouping"]["subFrameIdx"] = None
         self.commandParameters["peakGrouping"]["scheme"] = int(units[1])
@@ -846,7 +850,6 @@ class Configuration_2_1_0:
         pass
     except: 
       self.logger.log(event="parse_commandParameters_1443", level="Error", message="Parse error from: `{command}`".format(command=str(command)))
-    self.parse_configParameters_1443(verificationLevel="Warn")
 
   def parse_configParameters_1443(self, verificationLevel="Error"):
 
