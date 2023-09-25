@@ -803,7 +803,7 @@ class Configuration_2_1_0:
         self.commandParameters["clutterRemoval"]["enabled"] = int(units[1])
       if units[0] == "compRangeBiasAndRxChanPhase": 
         self.commandParameters["compRangeBiasAndRxChanPhase"]["rangeBias"] = int(units[1])
-        self.commandParameters["compRangeBiasAndRxChanPhase"]["setOfComplexValue"] = [int(value) for value in units[2:]]
+        self.commandParameters["compRangeBiasAndRxChanPhase"]["setOfComplexValue"] = [int(value) for value in units[2:]] # length == self.configParameters["numVirtualAntennas"]
       if units[0] == "measureRangeBiasAndRxChanPhase": 
         self.commandParameters["measureRangeBiasAndRxChanPhase"]["enabled"] = int(units[1])
         self.commandParameters["measureRangeBiasAndRxChanPhase"]["targetDistance"] = int(units[2])
