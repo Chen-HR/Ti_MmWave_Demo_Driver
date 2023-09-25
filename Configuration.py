@@ -17,10 +17,10 @@ class Configuration_2_1_0:
 
   http://www.ti.com
 
-  Currently only supports `xWR1443`
+  Currently only supports `xWR14xx`
   """
   __ProductRelease__ = '2.1.0'
-  logger_parse:  Log.Logger | None = None
+  logger:  Log.Logger | None = None
   platform = None
   commandParameters = {
     # The values in this command should not change between sensorStop and sensorStart.
@@ -678,8 +678,8 @@ class Configuration_2_1_0:
   }
 
   def __init__(self, platform: str):
-    logger_parse = Log.Logger(fileName="Configuration_2_1_0-parse.log")
-    if platform == "xWR1443":
+    self.logger = Log.Logger(fileName="Configuration_2_1_0.log")
+    if platform == "xWR14xx":
       self.platform = platform
 
   def set(self, command: str, parameters: str, value):
@@ -839,7 +839,7 @@ class Configuration_2_1_0:
       if units[0] == "flushCfg": 
         pass
     except: 
-      self.logger_parse.log(message="Parse error from: " + str(command))
+      self.logger.log(event="parse_commandParameters_1443", level="Error", message="Parse error from: `{command}`".format(str(command)))
 
   def parse_configParameters_1443(self):
 
