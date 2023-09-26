@@ -61,7 +61,7 @@ class xWR14xx:
     command = command.rstrip('\n').rstrip('\r')
     self.Ctrl_port.write(command.__add__('\n').encode())
 
-    self.Config.parse_commandParameters_1443(command=command)
+    self.Config.parse_commandParameters(command=command)
     self.logger.log(event="{}.config".format(self.__str__()), level="logging", message="command: `{command}`".format(command=command))
     if echo: print(command)
 

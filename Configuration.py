@@ -1,7 +1,9 @@
+# %%
 import math
+import copy
 
 import Log
-
+# %%
 class Configuration_2_1_0:
   """reference to `MMWAVE SDK User Guide`
 
@@ -175,7 +177,7 @@ class Configuration_2_1_0:
     # See mmwavelink doxgen for details.
     # The values in this command can be changed between sensorStop and sensorStart.
     # This is a mandatory command.
-    "chirpCfg": {
+    "chirpCfg": [{
     #   chirp start index
       "chirpStartIndex": None,
     #   chirp end index
@@ -192,7 +194,7 @@ class Configuration_2_1_0:
       "adcStartTimeVariation": None,
     #   tx antenna enable mask (Tx2,Tx1) e.g (10)b: Tx2 enabled, Tx1 disabled.
       "txAntennaEnableMask": None,
-    },
+    }],
     # BPM MIMO configuration.
     # Every frame consists of alternating chirps with pattern TX1_Tx2 and TX1-TX2. 
     # This is alternate configuration to TDM-MIMO scheme and provides SNR improvement by running 2Tx simultaneously.
@@ -667,6 +669,8 @@ class Configuration_2_1_0:
     "flushCfg": {},
   }
 
+  commandParameters_backup = dict()
+
   configParameters: dict[str, None] = {
     "numRxAnt": None, 
     "numTxAnt": None, 
@@ -685,11 +689,28 @@ class Configuration_2_1_0:
     self.logger = Log.Logger(fileName="Log/Configuration_2_1_0.log")
     if platform == "xWR14xx":
       self.platform = platform
+      del self.commandParameters["adcbufCfg"]["subFrameIdx"]
+      del self.commandParameters["bpmCfg"]["subFrameIdx"]
+      del self.commandParameters["bpmCfg"]["enabled"]
+      del self.commandParameters["bpmCfg"]["chirp0Idx"]
+      del self.commandParameters["bpmCfg"]["chirp1Idx"]
+      del self.commandParameters["bpmCfg"]
+      del self.commandParameters["guiMonitor"]["subFrameIdx"]
+      del self.commandParameters["cfarCfg"]["subFrameIdx"]
+      del self.commandParameters["peakGrouping"]["subFrameIdx"]
+      del self.commandParameters["multiObjBeamForming"]["subFrameIdx"]
+      del self.commandParameters["calibDcRangeSig"]["subFrameIdx"]
+      del self.commandParameters["extendedMaxVelocity"]["subFrameIdx"]
+      del self.commandParameters["nearFieldCfg"]["subFrameIdx"]
+      del self.commandParameters["lvdsStreamCfg"]["subFrameIdx"]
+    if platform == "xWR16xx":
+      self.platform = platform
+    self.commandParameters_backup = copy.deepcopy(self.commandParameters)
 
   def set(self, command: str, parameters: str, value):
-    self.cfg[command][parameters] = value
+    self.commandParameters[command][parameters] = value
   def get(self, command: str, parameters: str):
-    return self.cfg[command][parameters]
+    return self.commandParameters[command][parameters]
   
   def parse_commandParameters_1443(self, command: str):
     try:
@@ -700,7 +721,7 @@ class Configuration_2_1_0:
         self.commandParameters["channelCfg"]["rxChannelEn"] = int(units[1])
         self.commandParameters["channelCfg"]["txChannelEn"] = int(units[2])
         self.commandParameters["channelCfg"]["cascading"] = int(units[3])
-        self.parse_configParameters_1443(verificationLevel="Warn")
+        self.parse_configParameters_1443(verificationLevel="Warning")
       if units[0] == "adcCfg": 
         self.commandParameters["adcCfg"]["numADCBits"] = int(units[1])
         self.commandParameters["adcCfg"]["adcOutputFmt"] = int(units[2])
@@ -725,16 +746,16 @@ class Configuration_2_1_0:
         self.commandParameters["profileCfg"]["hpfCornerFreq1"] = int(units[12])
         self.commandParameters["profileCfg"]["hpfCornerFreq2"] = int(units[13])
         self.commandParameters["profileCfg"]["rxGain"] = int(units[14])
-        self.parse_configParameters_1443(verificationLevel="Warn")
+        self.parse_configParameters_1443(verificationLevel="Warning")
       if units[0] == "chirpCfg": 
         self.commandParameters["chirpCfg"]["chirpStartIndex"] = int(units[1])
         self.commandParameters["chirpCfg"]["chirpEndIndex"] = int(units[2])
         self.commandParameters["chirpCfg"]["profileIdentifier"] = float(units[3])
         self.commandParameters["chirpCfg"]["startFrequencyVariation"] = int(units[4])
         self.commandParameters["chirpCfg"]["frequencySlopeVariation"] = float(units[5])
-        self.commandParameters["chirpCfg"]["idleTimeVariation"] = float(units[5])
-        self.commandParameters["chirpCfg"]["adcStartTimeVariation"] = float(units[6])
-        self.commandParameters["chirpCfg"]["txAntennaEnableMask"] = int(units[7])
+        self.commandParameters["chirpCfg"]["idleTimeVariation"] = float(units[6])
+        self.commandParameters["chirpCfg"]["adcStartTimeVariation"] = float(units[7])
+        self.commandParameters["chirpCfg"]["txAntennaEnableMask"] = int(units[8])
       # if units[0] == "bpmCfg": 
       #   self.commandParameters["bpmCfg"]["subFrameIdx"] = None
       #   self.commandParameters["bpmCfg"]["enabled"] = None
@@ -751,7 +772,7 @@ class Configuration_2_1_0:
         self.commandParameters["frameCfg"]["framePeriodicity"] = float(units[5])
         self.commandParameters["frameCfg"]["triggerSelect"] = int(units[6])
         self.commandParameters["frameCfg"]["frameTriggerDelay"] = float(units[7])
-        self.parse_configParameters_1443(verificationLevel="Warn")
+        self.parse_configParameters_1443(verificationLevel="Warning")
       if units[0] == "advFrameCfg": 
         self.commandParameters["advFrameCfg"]["numOfSubFrames"] = int(units[1])
         self.commandParameters["advFrameCfg"]["forceProfile"] = int(units[2])
@@ -786,7 +807,7 @@ class Configuration_2_1_0:
         self.commandParameters["cfarCfg"]["divShift"] = int(units[5])
         self.commandParameters["cfarCfg"]["cyclicModeOrWrappedAroundMode"] = int(units[6])
         self.commandParameters["cfarCfg"]["ThresholdScale"] = int(units[7])
-        self.parse_configParameters_1443(verificationLevel="Warn")
+        self.parse_configParameters_1443(verificationLevel="Warning")
       if units[0] == "peakGrouping": 
         # self.commandParameters["peakGrouping"]["subFrameIdx"] = None
         self.commandParameters["peakGrouping"]["scheme"] = int(units[1])
@@ -851,6 +872,205 @@ class Configuration_2_1_0:
     except: 
       self.logger.log(event="parse_commandParameters_1443", level="Error", message="Parse error from: `{command}`".format(command=str(command)))
 
+  def parse_commandParameters(self, command: str):
+
+    def allNone(iterator):
+      for i in iterator:
+        if i is not None: return False
+      return True
+    
+    try:
+      clips: list[str] = command.split(' ')
+      main: str = clips.pop(0)
+      if main == "dfeDataOutputMode": 
+        self.commandParameters["dfeDataOutputMode"]["modeType"] = int(clips.pop(0))
+      if main == "channelCfg": 
+        self.commandParameters["channelCfg"]["rxChannelEn"] = int(clips.pop(0))
+        self.commandParameters["channelCfg"]["txChannelEn"] = int(clips.pop(0))
+        self.commandParameters["channelCfg"]["cascading"] = int(clips.pop(0))
+        self.parse_configParameters(verificationLevel="Warning")
+        # clear `chirpCfg`
+        self.commandParameters["chirpCfg"] = [self.commandParameters["chirpCfg"][0].copy()]
+        for keys in self.commandParameters["chirpCfg"][0].keys():
+          self.commandParameters["chirpCfg"][0][keys] = None
+      if main == "adcCfg": 
+        self.commandParameters["adcCfg"]["numADCBits"] = int(clips.pop(0))
+        self.commandParameters["adcCfg"]["adcOutputFmt"] = int(clips.pop(0))
+      if main == "adcbufCfg": 
+        if self.platform == "xwr16xx":
+          self.commandParameters["adcbufCfg"]["subFrameIdx"] = int(clips.pop(0))
+        else: pass
+        self.commandParameters["adcbufCfg"]["adcOutputFmt"] = int(clips.pop(0))
+        self.commandParameters["adcbufCfg"]["SampleSwap"] = int(clips.pop(0))
+        self.commandParameters["adcbufCfg"]["ChanInterleave"] = int(clips.pop(0))
+        self.commandParameters["adcbufCfg"]["ChirpThreshold"] = int(clips.pop(0))
+      if main == "profileCfg": 
+        self.commandParameters["profileCfg"]["profileId"] = int(clips.pop(0))
+        self.commandParameters["profileCfg"]["startFreq"] = float(clips.pop(0))
+        self.commandParameters["profileCfg"]["idleTime"] = float(clips.pop(0))
+        self.commandParameters["profileCfg"]["adcStartTime"] = float(clips.pop(0))
+        self.commandParameters["profileCfg"]["rampEndTime"] = float(clips.pop(0))
+        self.commandParameters["profileCfg"]["txOutPower"] = int(clips.pop(0))
+        self.commandParameters["profileCfg"]["txPhaseShifter"] = int(clips.pop(0))
+        self.commandParameters["profileCfg"]["freqSlopeConst"] = float(clips.pop(0))
+        self.commandParameters["profileCfg"]["txStartTime"] = float(clips.pop(0))
+        self.commandParameters["profileCfg"]["numAdcSamples"] = int(clips.pop(0))
+        self.commandParameters["profileCfg"]["digOutSampleRate"] = int(clips.pop(0))
+        self.commandParameters["profileCfg"]["hpfCornerFreq1"] = int(clips.pop(0))
+        self.commandParameters["profileCfg"]["hpfCornerFreq2"] = int(clips.pop(0))
+        self.commandParameters["profileCfg"]["rxGain"] = int(clips.pop(0))
+        self.parse_configParameters(verificationLevel="Warning")
+      if main == "chirpCfg": 
+        # if length == 1 and all None : set [0]
+        # else : append and set [-1]
+        setIndex = None
+        if len(self.commandParameters["chirpCfg"]) == 1 and allNone(self.commandParameters["chirpCfg"][0].values()):
+          setIndex: int = 0
+        else: 
+          setIndex: int = len(self.commandParameters["chirpCfg"])
+          self.commandParameters["chirpCfg"].append(self.commandParameters["chirpCfg"][0].copy())
+
+        self.commandParameters["chirpCfg"][setIndex]["chirpStartIndex"] = int(clips.pop(0))
+        self.commandParameters["chirpCfg"][setIndex]["chirpEndIndex"] = int(clips.pop(0))
+        self.commandParameters["chirpCfg"][setIndex]["profileIdentifier"] = float(clips.pop(0))
+        self.commandParameters["chirpCfg"][setIndex]["startFrequencyVariation"] = int(clips.pop(0))
+        self.commandParameters["chirpCfg"][setIndex]["frequencySlopeVariation"] = float(clips.pop(0))
+        self.commandParameters["chirpCfg"][setIndex]["idleTimeVariation"] = float(clips.pop(0))
+        self.commandParameters["chirpCfg"][setIndex]["adcStartTimeVariation"] = float(clips.pop(0))
+        self.commandParameters["chirpCfg"][setIndex]["txAntennaEnableMask"] = int(clips.pop(0))
+
+        # if length >= self.configParameters["numTxAnt"] : delete [0]; config Warn(overflow);
+        if len(self.commandParameters["chirpCfg"]) > self.configParameters["numTxAnt"]:
+          del CFG.commandParameters["chirpCfg"][0]
+          self.logger.log(event="parse_commandParameters", level="Warning", message="For redundant commands (`{command}`), the earliest received command will be removed from the record.".format(command=command))
+
+      if self.platform == "xwr16xx":
+        if main == "bpmCfg": 
+          self.commandParameters["bpmCfg"]["subFrameIdx"] = int(clips.pop(0))
+          self.commandParameters["bpmCfg"]["enabled"] = int(clips.pop(0))
+          self.commandParameters["bpmCfg"]["chirp0Idx"] = int(clips.pop(0))
+          self.commandParameters["bpmCfg"]["chirp1Idx"] = int(clips.pop(0))
+      if main == "lowPower": 
+        self.commandParameters["lowPower"]["dontCare"] = int(clips.pop(0))
+        self.commandParameters["lowPower"]["adcMode"] = int(clips.pop(0))
+      if main == "frameCfg": 
+        self.commandParameters["frameCfg"]["chirpStartIndex"] = int(clips.pop(0))
+        self.commandParameters["frameCfg"]["chirpEndIndex"] = int(clips.pop(0))
+        self.commandParameters["frameCfg"]["numberOfLoops"] = int(clips.pop(0))
+        self.commandParameters["frameCfg"]["numberOfFrames"] = int(clips.pop(0))
+        self.commandParameters["frameCfg"]["framePeriodicity"] = float(clips.pop(0))
+        self.commandParameters["frameCfg"]["triggerSelect"] = int(clips.pop(0))
+        self.commandParameters["frameCfg"]["frameTriggerDelay"] = float(clips.pop(0))
+        self.parse_configParameters(verificationLevel="Warning")
+      if main == "advFrameCfg": 
+        self.commandParameters["advFrameCfg"]["numOfSubFrames"] = int(clips.pop(0))
+        self.commandParameters["advFrameCfg"]["forceProfile"] = int(clips.pop(0))
+        self.commandParameters["advFrameCfg"]["numFrames"] = int(clips.pop(0))
+        self.commandParameters["advFrameCfg"]["triggerSelect"] = int(clips.pop(0))
+        self.commandParameters["advFrameCfg"]["frameTrigDelay"] = float(clips.pop(0))
+      if main == "subFrameCfg": 
+        self.commandParameters["subFrameCfg"]["subFrameNum"] = int(clips.pop(0))
+        self.commandParameters["subFrameCfg"]["forceProfileIdx"] = int(clips.pop(0))
+        self.commandParameters["subFrameCfg"]["chirpStartIdx"] = int(clips.pop(0))
+        self.commandParameters["subFrameCfg"]["numOfChirps"] = int(clips.pop(0))
+        self.commandParameters["subFrameCfg"]["numLoops"] = int(clips.pop(0))
+        self.commandParameters["subFrameCfg"]["burstPeriodicity"] = float(clips.pop(0))
+        self.commandParameters["subFrameCfg"]["chirpStartIdxOffset"] = int(clips.pop(0))
+        self.commandParameters["subFrameCfg"]["numOfBurst"] = int(clips.pop(0))
+        self.commandParameters["subFrameCfg"]["numOfBurstLoops"] = int(clips.pop(0))
+        self.commandParameters["subFrameCfg"]["subFramePeriodicity"] = float(clips.pop(0))
+      if main == "guiMonitor": 
+        if self.platform == "xwr16xx":
+          self.commandParameters["guiMonitor"]["subFrameIdx"] = int(clips.pop(0))
+        self.commandParameters["guiMonitor"]["detectedObjects"] = int(clips.pop(0))
+        self.commandParameters["guiMonitor"]["logMagnitudeRange"] = int(clips.pop(0))
+        self.commandParameters["guiMonitor"]["noiseProfile"] = int(clips.pop(0))
+        self.commandParameters["guiMonitor"]["rangeAzimuthHeatMap"] = int(clips.pop(0))
+        self.commandParameters["guiMonitor"]["rangeDopplerHeatMap"] = int(clips.pop(0))
+        self.commandParameters["guiMonitor"]["statsInfo"] = int(clips.pop(0))
+      if main == "cfarCfg": 
+        if self.platform == "xwr16xx":
+          self.commandParameters["cfarCfg"]["subFrameIdx"] = int(clips.pop(0))
+        self.commandParameters["cfarCfg"]["procDirection"] = int(clips.pop(0))
+        self.commandParameters["cfarCfg"]["mode"] = int(clips.pop(0))
+        self.commandParameters["cfarCfg"]["noiseWin"] = int(clips.pop(0))
+        self.commandParameters["cfarCfg"]["guardLen"] = int(clips.pop(0))
+        self.commandParameters["cfarCfg"]["divShift"] = int(clips.pop(0))
+        self.commandParameters["cfarCfg"]["cyclicModeOrWrappedAroundMode"] = int(clips.pop(0))
+        self.commandParameters["cfarCfg"]["ThresholdScale"] = int(clips.pop(0))
+        self.parse_configParameters(verificationLevel="Warning")
+      if main == "peakGrouping": 
+        if self.platform == "xwr16xx":
+          self.commandParameters["peakGrouping"]["subFrameIdx"] = int(clips.pop(0))
+        self.commandParameters["peakGrouping"]["scheme"] = int(clips.pop(0))
+        self.commandParameters["peakGrouping"]["peakGroupingInRangeDirection"] = int(clips.pop(0))
+        self.commandParameters["peakGrouping"]["peakGroupingInDopplerDirection"] = int(clips.pop(0))
+        self.commandParameters["peakGrouping"]["startRangeIndex"] = int(clips.pop(0))
+        self.commandParameters["peakGrouping"]["endRangeIndex"] = int(clips.pop(0))
+      if main == "multiObjBeamForming": 
+        if self.platform == "xwr16xx":
+          self.commandParameters["multiObjBeamForming"]["subFrameIdx"] = int(clips.pop(0))
+        self.commandParameters["multiObjBeamForming"]["featureEnabled"] = int(clips.pop(0))
+        self.commandParameters["multiObjBeamForming"]["threshold"] = float(clips.pop(0))
+      if main == "calibDcRangeSig": 
+        if self.platform == "xwr16xx":
+          self.commandParameters["calibDcRangeSig"]["subFrameIdx"] = int(clips.pop(0))
+        self.commandParameters["calibDcRangeSig"]["enabled"] = int(clips.pop(0))
+        self.commandParameters["calibDcRangeSig"]["negativeBinIdx"] = int(clips.pop(0))
+        self.commandParameters["calibDcRangeSig"]["positiveBinIdx"] = int(clips.pop(0))
+        self.commandParameters["calibDcRangeSig"]["numAvg"] = int(clips.pop(0))
+      if main == "extendedMaxVelocity": 
+        if self.platform == "xwr16xx":
+          self.commandParameters["extendedMaxVelocity"]["subFrameIdx"] = int(clips.pop(0))
+        self.commandParameters["extendedMaxVelocity"]["enabled"] = int(clips.pop(0))
+      if main == "clutterRemoval": 
+        self.commandParameters["clutterRemoval"]["enabled"] = int(clips.pop(0))
+      if main == "compRangeBiasAndRxChanPhase": 
+        self.commandParameters["compRangeBiasAndRxChanPhase"]["rangeBias"] = float(clips.pop(0))
+        self.commandParameters["compRangeBiasAndRxChanPhase"]["setOfComplexValue"] = [int(value) for value in clips] # length == self.configParameters["numVirtualAntennas"]
+        if len(self.commandParameters["compRangeBiasAndRxChanPhase"]["setOfComplexValue"]) == self.configParameters["numVirtualAntennas"]:
+          self.logger.log(event="parse_commandParameters", level="Error", message="Wrong number of parameters: {command}".format(command=command))
+      if main == "measureRangeBiasAndRxChanPhase": 
+        self.commandParameters["measureRangeBiasAndRxChanPhase"]["enabled"] = int(clips.pop(0))
+        self.commandParameters["measureRangeBiasAndRxChanPhase"]["targetDistance"] = float(clips.pop(0))
+        self.commandParameters["measureRangeBiasAndRxChanPhase"]["searchWin"] = float(clips.pop(0))
+      if main == "nearFieldCfg": 
+        if self.platform == "xwr16xx":
+          self.commandParameters["nearFieldCfg"]["subFrameIdx"] = int(clips.pop(0))
+        self.commandParameters["nearFieldCfg"]["enabled"] = int(clips.pop(0))
+        self.commandParameters["nearFieldCfg"]["startRangeIndex"] = int(clips.pop(0))
+        self.commandParameters["nearFieldCfg"]["endRangeIndex"] = int(clips.pop(0))
+      if main == "CQRxSatMonitor": 
+        self.commandParameters["CQRxSatMonitor"]["profile"] = int(clips.pop(0))
+        self.commandParameters["CQRxSatMonitor"]["satMonSel"] = int(clips.pop(0))
+        self.commandParameters["CQRxSatMonitor"]["priSliceDuration"] = int(clips.pop(0))
+        self.commandParameters["CQRxSatMonitor"]["numSlices"] = int(clips.pop(0))
+        self.commandParameters["CQRxSatMonitor"]["rxChanMask"] = int(clips.pop(0))
+      if main == "CQSigImgMonitor": 
+        self.commandParameters["CQSigImgMonitor"]["profile"] = int(clips.pop(0))
+        self.commandParameters["CQSigImgMonitor"]["numSlices"] = int(clips.pop(0))
+        self.commandParameters["CQSigImgMonitor"]["numSamplePerSlice"] = int(clips.pop(0))
+      if main == "analogMonitor": 
+        self.commandParameters["analogMonitor"]["rxSaturation"] = int(clips.pop(0))
+        self.commandParameters["analogMonitor"]["sigImgBand"] = int(clips.pop(0))
+      if main == "lvdsStreamCfg": 
+        if self.platform == "xwr16xx":
+          self.commandParameters["lvdsStreamCfg"]["subFrameIdx"] = int(clips.pop(0))
+        self.commandParameters["lvdsStreamCfg"]["enableHeader"] = int(clips.pop(0))
+        self.commandParameters["lvdsStreamCfg"]["dataFmt"] = int(clips.pop(0))
+        self.commandParameters["lvdsStreamCfg"]["enableSW"] = int(clips.pop(0))
+      if main == "sensorStart": 
+        if len(clips) > 1:
+          self.commandParameters["sensorStart"]["doReconfig"] = int(clips.pop(0))
+          self.parse_configParameters()
+      if main == "sensorStop": 
+        pass
+      if main == "flushCfg": 
+        self.commandParameters = copy.deepcopy(self.commandParameters_backup)
+        pass
+    except: 
+      self.logger.log(event="parse_commandParameters", level="Error", message="Parse error from: `{command}`".format(command=str(command)))
+
   def parse_configParameters_1443(self, verificationLevel="Error"):
 
     def decode_mask(mask: int) -> int:
@@ -914,10 +1134,81 @@ class Configuration_2_1_0:
       self.configParameters["maxVelocity"] = 3e8 / (4 * startFreq * 1e9 * (idleTime + rampEndTime) * 1e-6 * self.configParameters["numTxAnt"])
       self.logger.log(event="parse_configParameters_1443", level="information", message="parse configParameters success")
 
+  def parse_configParameters(self, verificationLevel="Error"):
+
+    def decode_mask(mask: int) -> int:
+      value = 0
+      while mask :
+        mask >>= 1
+        value += 1
+      return value
+
+    Missing_Command = False
+
+    if not Missing_Command: 
+      try:
+        self.configParameters["numRxAnt"] = decode_mask(mask=int(self.commandParameters["channelCfg"]["rxChannelEn"]))
+        self.configParameters["numTxAnt"] = decode_mask(mask=int(self.commandParameters["channelCfg"]["txChannelEn"]))
+        self.configParameters["numVirtualAntennas"] = self.configParameters["numRxAnt"] * self.configParameters["numTxAnt"]
+      except TypeError:
+        Missing_Command = True
+        self.logger.log(event="parse_configParameters", level=verificationLevel, message="Missing command: `channelCfg`")
+
+    if not Missing_Command: 
+      try:
+        startFreq = self.commandParameters["profileCfg"]["startFreq"]
+        idleTime = self.commandParameters["profileCfg"]["idleTime"]
+        rampEndTime = self.commandParameters["profileCfg"]["rampEndTime"]
+        freqSlopeConst = self.commandParameters["profileCfg"]["freqSlopeConst"]
+        numAdcSamples = self.commandParameters["profileCfg"]["numAdcSamples"]
+        numAdcSamplesRoundTo2 = 1
+        while numAdcSamples > numAdcSamplesRoundTo2: numAdcSamplesRoundTo2 = numAdcSamplesRoundTo2 << 1
+        digOutSampleRate = self.commandParameters["profileCfg"]["digOutSampleRate"]
+      except TypeError:
+        Missing_Command = True
+        self.logger.log(event="parse_configParameters", level=verificationLevel, message="Missing command: `profileCfg`")
+
+    if not Missing_Command: 
+      try:
+        chirpStartIdx = self.commandParameters["frameCfg"]["chirpStartIndex"]
+        chirpEndIdx = self.commandParameters["frameCfg"]["chirpEndIndex"]
+        numLoops = self.commandParameters["frameCfg"]["numberOfLoops"]
+        numFrames = self.commandParameters["frameCfg"]["numberOfFrames"]
+        self.configParameters["framePeriodicity"] = self.commandParameters["frameCfg"]["framePeriodicity"]
+        numChirpsPerFrame = (chirpEndIdx - chirpStartIdx + 1) * numLoops
+      except TypeError:
+        Missing_Command = True
+        self.logger.log(event="parse_configParameters", level=verificationLevel, message="Missing command: `frameCfg`")
+
+    if not Missing_Command: 
+      try:
+        self.configParameters["thresholdScaleDb"] = (self.commandParameters["cfarCfg"]["ThresholdScale"] * 6 * 2**math.ceil(math.log2(self.configParameters["numVirtualAntennas"]))) // (512 * self.configParameters["numVirtualAntennas"])
+      except TypeError:
+        Missing_Command = True
+        self.logger.log(event="parse_configParameters", level=verificationLevel, message="Missing command: `cfarCfg`")
+
+    if not Missing_Command: 
+      self.configParameters["numDopplerBins"] = numChirpsPerFrame / self.configParameters["numTxAnt"]
+      self.configParameters["numRangeBins"] = numAdcSamplesRoundTo2
+      self.configParameters["rangeResolutionMeters"] = (3e8 * digOutSampleRate * 1e3) / (2 * freqSlopeConst * 1e12 * numAdcSamples)
+      self.configParameters["rangeIdxToMeters"] = (3e8 * digOutSampleRate * 1e3) / (2 * freqSlopeConst * 1e12 * self.configParameters["numRangeBins"])
+      self.configParameters["dopplerResolutionMps"] = 3e8 / (2 * startFreq * 1e9 * (idleTime + rampEndTime) * 1e-6 * self.configParameters["numDopplerBins"] * self.configParameters["numTxAnt"])
+      self.configParameters["maxRange"] = (300 * 0.9 * digOutSampleRate)/(2 * freqSlopeConst * 1e3)
+      self.configParameters["maxVelocity"] = 3e8 / (4 * startFreq * 1e9 * (idleTime + rampEndTime) * 1e-6 * self.configParameters["numTxAnt"])
+      self.logger.log(event="parse_configParameters", level="information", message="parse configParameters success")
+
   def calc_CfarRangeThreshold_dB_1443(self, threshold_dB: int|float):
     if threshold_dB<0 or threshold_dB>100: 
       return self.commandParameters["cfarCfg"]["ThresholdScale"]
     return (threshold_dB * 512 * self.configParameters["numVirtualAntennas"]) // (6 * 2**math.ceil(math.log2(self.configParameters["numVirtualAntennas"])))
+
+  def calc_CfarRangeThreshold_dB(self, threshold_dB: int|float):
+    if threshold_dB<0 or threshold_dB>100: 
+      return self.commandParameters["cfarCfg"]["ThresholdScale"]
+    if self.platform == "xWR14xx":
+      return (threshold_dB * 512 * self.configParameters["numVirtualAntennas"]) // (6 * 2**math.ceil(math.log2(self.configParameters["numVirtualAntennas"])))
+    if self.platform == "xWR16xx":
+      return (threshold_dB * 256 * self.configParameters["numVirtualAntennas"]) // 6
   
   def command_CfarRangeThreshold_dB_1443(self, threshold_dB: int|float) -> str:
     self.commandParameters["cfarCfg"]["ThresholdScale"] = self.calc_CfarRangeThreshold_dB_1443(threshold_dB)
@@ -934,3 +1225,7 @@ class Configuration_2_1_0:
   def command_RemoveStaticClutter(self, enabled: bool = True) -> str:
     self.commandParameters["clutterRemoval"]["enabled"] = int(enabled)
     return ' '.join(["clutterRemoval", str(self.commandParameters["clutterRemoval"]["enabled"])])
+
+# %%
+if __name__ == '__main__':
+  CFG = Configuration_2_1_0(platform="xWR14xx")
