@@ -20,6 +20,7 @@ class xWR14xx:
   Data_port_baudrate: int | None = None
 
   State: str | None = None
+  Data_port_Reading: bool | None = None
 
   Config: Configuration.Configuration_2_1_0 | None = None
 
@@ -40,6 +41,7 @@ class xWR14xx:
     self.Config = Configuration.Configuration_2_1_0(platform="xWR14xx")
 
     self.State = "initialized"
+    self.Data_port_Reading = False
 
   def __delattr__(self, __name: str) -> None:
     self.Ctrl_port.close()
@@ -94,11 +96,27 @@ class xWR14xx:
     with open(file=CFG_file_name, mode="r") as CFG_file:
       CFG_lines: list[str] = [CFG_line.rstrip('\r\n').__add__('\n') for CFG_line in CFG_file.readlines()]
       self.configure(commands=CFG_lines, wait=wait, echo=echo)
-      
+
+  def record_DataPort(self, record_file_name: str="Record/Data.bin"):
+    if not self.Data_port_Reading:
+      self.Data_port_Reading = True
+      try:
+        with open(file=record_file_name, mode='wb+') as record_file:
+          while self.Data_port.in_waiting > 0:
+            Data_buffer: bytes = self.Data_port.read(self.Data_port.in_waiting)
+            record_file.write(Data_buffer)
+      except KeyboardInterrupt:
+        pass
+      self.Data_port_Reading = False
+
 # %%
 if __name__ == '__main__':
   device = xWR14xx(Ctrl_port_name="COM3", Data_port_name="COM4", Ctrl_port_baudrate=115200, Data_port_baudrate=921600)
   device.configure_file(CFG_file_name="Profile\profile.cfg")
   device.configure(device.Config.command_CfarRangeThreshold_dB_1443(threshold_dB=8))
   device.configure(device.Config.command_RemoveStaticClutter())
+  print("configured device")
+  time.sleep(device.Config.configParameters["framePeriodicity"]/1000)
+  print("start recording")
+  device.record_DataPort()
 # %%
