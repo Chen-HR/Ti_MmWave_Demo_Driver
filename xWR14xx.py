@@ -22,7 +22,7 @@ class xWR14xx:
   State: str | None = None
   Data_port_Reading: bool | None = None
 
-  Config: Configuration.Configuration_2_1_0 | None = None
+  config: Configuration.Configuration_2_1_0 | None = None
 
   logger: Log.Logger | None = None
 
@@ -38,10 +38,12 @@ class xWR14xx:
 
     self.logger = Log.Logger(fileName="Log/xWR14xx.log")
 
-    self.Config = Configuration.Configuration_2_1_0(platform="xWR14xx")
+    self.config = Configuration.Configuration_2_1_0(platform="xWR14xx")
 
     self.State = "initialized"
     self.Data_port_Reading = False
+
+    self.sensorStop()
 
   def __delattr__(self, __name: str) -> None:
     self.Ctrl_port.close()
@@ -61,7 +63,7 @@ class xWR14xx:
     command = command.rstrip('\n').rstrip('\r')
     self.Ctrl_port.write(command.__add__('\n').encode())
 
-    self.Config.parse_commandParameters(command=command)
+    self.config.parse_commandParameters(commandLine=command)
     self.logger.log(event="{}.config".format(self.__str__()), level="logging", message="command: `{command}`".format(command=command))
     if echo: print(command)
 
@@ -73,18 +75,32 @@ class xWR14xx:
     
     time.sleep(wait)
 
-  def configure(self, commands: list[str] | str, wait: float | int = 0.05, echo: bool = False):
+  def configure(self, commands: list[str] | str | None = None, wait: float | int = 0.05, echo: bool = False):
     """configuration
+
     Args:
-      command (str): Configuration commands
-      wait (float | int, optional): Configured wait delay. Defaults to 0.1.
-      echo (bool, optional): Display configuration instructions. Defaults to False.
+        commands (list[str] | str | None, optional): Configuration commands. Defaults to None, it will use self.config data.
+        wait (float | int, optional): Configured wait delay. Defaults to 0.05.
+        echo (bool, optional): Display configuration instructions. Defaults to False.
     """
-    for command in commands: # Assume `commands` is list[str]
-      if len(command) == 1: # `commands` is str, not list[str]
-        self.configure_unit(command=commands, wait=wait, echo=echo)
-        break
-      self.configure_unit(command=command, wait=wait, echo=echo)
+    if commands == None:
+      for command in self.config.commandParameters.keys():
+        if command != "sensorStart" and command != "sensorStop" and command !="flushCfg":
+          self.configure_unit(self.config.command_Generator(command), wait=wait, echo=echo)
+    else: 
+      for command in commands: # Assume `commands` is list[str]
+        if len(command) == 1: # `commands` is str, not list[str]
+          self.configure_unit(command=commands, wait=wait, echo=echo)
+          break
+        self.configure_unit(command=command, wait=wait, echo=echo)
+  # def configure(self, wait: float | int = 0.05, echo: bool = False):
+  #   """configuration fron config
+  #   Args:
+  #     wait (float | int, optional): Configured wait delay. Defaults to 0.1.
+  #     echo (bool, optional): Display configuration instructions. Defaults to False.
+  #   """
+  #   for command in self.config.commandParameters.keys(): # Assume `commands` is list[str]
+  #     self.configure_unit(command=self.config.command_Generator(command=command), wait=wait, echo=echo)
   def configure_file(self, CFG_file_name: str = "profile.cfg", wait: float | int = 0.05, echo: bool = False):
     """configuration from file
 
@@ -96,6 +112,13 @@ class xWR14xx:
     with open(file=CFG_file_name, mode="r") as CFG_file:
       CFG_lines: list[str] = [CFG_line.rstrip('\r\n').__add__('\n') for CFG_line in CFG_file.readlines()]
       self.configure(commands=CFG_lines, wait=wait, echo=echo)
+
+  def sensorStop(self):
+    self.configure_unit("sensorStop")
+    self.State = "Sensor_Stop"
+  def sensorStart(self):
+    self.configure_unit("sensorStart")
+    self.State = "Sensor_Start"
 
   def record_DataPort(self, record_file_name: str="Record/Data.bin"):
     if not self.Data_port_Reading:
@@ -113,10 +136,16 @@ class xWR14xx:
 if __name__ == '__main__':
   device = xWR14xx(Ctrl_port_name="COM3", Data_port_name="COM4", Ctrl_port_baudrate=115200, Data_port_baudrate=921600)
   device.configure_file(CFG_file_name="Profile\profile.cfg")
-  device.configure(device.Config.command_CfarRangeThreshold_dB_1443(threshold_dB=8))
-  device.configure(device.Config.command_RemoveStaticClutter())
+  device.sensorStart()
   print("configured device")
-  time.sleep(device.Config.configParameters["framePeriodicity"]/1000)
+  time.sleep(device.config.configParameters["framePeriodicity"]/1000)
   print("start recording")
   device.record_DataPort()
+
+  device.sensorStop()
+  device.config.set_CfarRangeThreshold_dB(threshold_dB=8)
+  device.config.set_RemoveStaticClutter(enabled=True)
+  device.config.set_FramePeriodicity(milliseconds=1500)
+  device.configure()
+  device.sensorStart()
 # %%
