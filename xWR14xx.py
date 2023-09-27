@@ -135,17 +135,21 @@ class xWR14xx:
 # %%
 if __name__ == '__main__':
   device = xWR14xx(Ctrl_port_name="COM3", Data_port_name="COM4", Ctrl_port_baudrate=115200, Data_port_baudrate=921600)
+  print("configured device...")
   device.configure_file(CFG_file_name="Profile\profile.cfg")
   device.sensorStart()
-  print("configured device")
+  print("sensorStart")
   time.sleep(device.config.configParameters["framePeriodicity"]/1000)
-  print("start recording")
+  print("record_DataPort")
   device.record_DataPort()
 
   device.sensorStop()
-  device.config.set_CfarRangeThreshold_dB(threshold_dB=8)
+  print("sensorStop")
+  print("configured device...")
+  device.config.set_CfarRangeThreshold_dB(threshold_dB=5)
   device.config.set_RemoveStaticClutter(enabled=True)
   device.config.set_FramePeriodicity(milliseconds=1500)
   device.configure()
   device.sensorStart()
+  print("sensorStart")
 # %%
