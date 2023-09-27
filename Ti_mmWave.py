@@ -11,7 +11,9 @@ import Configuration
 
 # %% 
 # (Ctrl_port_name, Data_port_name, Ctrl_port_baudrate, Data_port_baudrate, Ctrl_file_name, Data_file_name)
-class xWR14xx:
+class Ti_mmWave:
+
+  platform: str | None = None
 
   Ctrl_port: serial.Serial | None = None
   Data_port: serial.Serial | None = None
@@ -26,7 +28,9 @@ class xWR14xx:
 
   logger: Log.Logger | None = None
 
-  def __init__(self, Ctrl_port_name: str, Data_port_name: str, Ctrl_port_baudrate: int = 115200, Data_port_baudrate: int = 921600):
+  def __init__(self, platfrom: str, Ctrl_port_name: str, Data_port_name: str, Ctrl_port_baudrate: int = 115200, Data_port_baudrate: int = 921600):
+
+    self.platfrom = platfrom
 
     self.Ctrl_port_baudrate = Ctrl_port_baudrate
     self.Ctrl_port = serial.Serial(port=Ctrl_port_name, baudrate=Ctrl_port_baudrate)
@@ -36,9 +40,9 @@ class xWR14xx:
     self.Data_port = serial.Serial(port=Data_port_name, baudrate=Data_port_baudrate)
     SerialTool.print_serial_info(port=self.Data_port, Name="Data port")
 
-    self.logger = Log.Logger(fileName="Log/xWR14xx.log")
+    self.logger = Log.Logger(fileName="Log/ti_mmWave.log")
 
-    self.config = Configuration.Configuration_2_1_0(platform="xWR14xx")
+    self.config = Configuration.Configuration_2_1_0(platform=platfrom)
 
     self.State = "initialized"
     self.Data_port_Reading = False
@@ -50,7 +54,7 @@ class xWR14xx:
     self.Data_port.close()
 
   def __str__(self) -> str:
-    return "xWR14xx('{Ctrl_port}', '{Data_port}', {Ctrl_port_baudrate}, {Data_port_baudrate})".format(Ctrl_port=self.Ctrl_port.name, Data_port=self.Data_port.name, Ctrl_port_baudrate=self.Ctrl_port_baudrate, Data_port_baudrate=self.Data_port_baudrate)
+    return "Ti_mmWave('{platfrom}', '{Ctrl_port}', '{Data_port}', {Ctrl_port_baudrate}, {Data_port_baudrate})".format(platfrom=self.platform, Ctrl_port=self.Ctrl_port.name, Data_port=self.Data_port.name, Ctrl_port_baudrate=self.Ctrl_port_baudrate, Data_port_baudrate=self.Data_port_baudrate)
 
   def configure_unit(self, command: str, wait: float | int = 0.05, echo: bool = False):
     """unit configuration
@@ -134,7 +138,7 @@ class xWR14xx:
 
 # %%
 if __name__ == '__main__':
-  device = xWR14xx(Ctrl_port_name="COM3", Data_port_name="COM4", Ctrl_port_baudrate=115200, Data_port_baudrate=921600)
+  device = Ti_mmWave(Ctrl_port_name="COM3", Data_port_name="COM4", Ctrl_port_baudrate=115200, Data_port_baudrate=921600)
   print("configured device...")
   device.configure_file(CFG_file_name="Profile\profile.cfg")
   device.sensorStart()
