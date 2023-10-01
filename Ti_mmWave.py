@@ -202,8 +202,8 @@ class Ti_mmWave:
       TLV_TypeId, index = uint8_2_uint32(buffer_uint8, index)
       TLV_Length, index = uint8_2_uint32(buffer_uint8, index)
       if log:
-        self.logger.log(event="{}.updateData".format(self.__str__()), level="logging", message="  TLV_TypeId: {}".format(TLV_TypeId))
-        self.logger.log(event="{}.updateData".format(self.__str__()), level="logging", message="  TLV_Length: {}".format(TLV_Length))
+        self.logger.log(event="{}.updateData".format(self.__str__()), level="logging", message="self.data.TLV[{}].TypeId: {}".format(TLV_index, TLV_TypeId))
+        self.logger.log(event="{}.updateData".format(self.__str__()), level="logging", message="self.data.TLV[{}].Length: {}".format(TLV_index, TLV_Length))
       if TLV_TypeId == 1:
         self.data.detectedObjects.infomation.numDetetedObj, index = uint8_2_uint16(buffer_uint8, index)
         self.data.detectedObjects.infomation.xyzQFormat   , index = uint8_2_uint16(buffer_uint8, index)
