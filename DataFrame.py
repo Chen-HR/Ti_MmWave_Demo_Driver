@@ -6,60 +6,40 @@ import numpy # numpy-1.26.0
 
 import Log
 # %%
-class DetectedObjects:
-
-  class DetetedInfomation:
-    numDetetedObj: numpy.uint16 | None = None
-    xyzQFormat: numpy.uint16 | None = None
-    def __init__(self):
-      pass
-  class DetectedObj:
-    rangeIdx: numpy.uint16 | None = None
-    dopplerIdx: numpy.int16 | None = None
-    peakVal: numpy.uint16 | None = None
-    x: numpy.int16 | None = None
-    y: numpy.int16 | None = None
-    z: numpy.int16 | None = None
-    def __init__(self):
-      pass
-    def __init__(self, rangeIdx, dopplerIdx, peakVal, x, y, z):
-      self.rangeIdx   = rangeIdx
-      self.dopplerIdx = dopplerIdx
-      self.peakVal    = peakVal
-      self.x          = x
-      self.y          = y
-      self.z          = z
-      pass
-
-  infomation: DetetedInfomation | None = DetetedInfomation()
-  Objects: list[DetectedObj] | None = list()
-  
-  def __init__(self):
-    # self.infomation = DetectedObjects.DetetedInfomation()
-    # self.Objects = list()
-    pass
-
-
-# %%
-
-
-# %%
 class DataFrame:
 
-  # header
-  magicWords: tuple[numpy.uint8] | None = None
-  version: numpy.uint32 | None = None
-  totalPacketLen: numpy.uint32 | None = None
-  platform: numpy.uint32 | None = None
-  frameNumber: numpy.uint32 | None = None
-  timeCpuCycles: numpy.uint32 | None = None
-  numDetectedObj: numpy.uint32 | None = None
-  numTLVs: numpy.uint32 | None = None
-  subFrameNumber: numpy.uint32 | None = None
+  class DetectedObjects:
 
-  # data
-  detectedObjects: DetectedObjects | None = DetectedObjects()
+    class DetetedInfomation:
+      def __init__(self):
+        self.numDetetedObj: numpy.uint16 | None = None
+        self.xyzQFormat: numpy.uint16 | None = None
+
+    class DetectedObj:
+      def __init__(self, rangeIdx: numpy.uint16 | None = None, dopplerIdx: numpy.int16 | None = None, peakVal: numpy.uint16 | None = None, x: numpy.int16 | None = None, y: numpy.int16 | None = None, z: numpy.int16 | None = None):
+        self.rangeIdx:    numpy.uint16 | None = rangeIdx
+        self.dopplerIdx:  numpy. int16 | None = dopplerIdx
+        self.peakVal:     numpy.uint16 | None = peakVal
+        self.x:           numpy. int16 | None = x
+        self.y:           numpy. int16 | None = y
+        self.z:           numpy. int16 | None = z
+
+    def __init__(self):
+      self.infomation: DataFrame.DetectedObjects.DetetedInfomation | None = DataFrame.DetectedObjects.DetetedInfomation()
+      self.Objects: list[DataFrame.DetectedObjects.DetectedObj] | None = list()
 
   def __init__(self) -> None:
+    # header
     self.magicWords: tuple[numpy.uint8] = (0x02, 0x01, 0x04, 0x03, 0x06, 0x05, 0x08, 0x07)
+    self.version:         numpy.uint32 | None = None
+    self.totalPacketLen:  numpy.uint32 | None = None
+    self.platform:        numpy.uint32 | None = None
+    self.frameNumber:     numpy.uint32 | None = None
+    self.timeCpuCycles:   numpy.uint32 | None = None
+    self.numDetectedObj:  numpy.uint32 | None = None
+    self.numTLVs:         numpy.uint32 | None = None
+    self.subFrameNumber:  numpy.uint32 | None = None
+
+    # data
+    self.detectedObjects: DataFrame.DetectedObjects | None = DataFrame.DetectedObjects()
     # self.detectedObjects = DetectedObjects()

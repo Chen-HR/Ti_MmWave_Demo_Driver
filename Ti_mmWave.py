@@ -15,24 +15,6 @@ import DataFrame
 # %% 
 class Ti_mmWave:
 
-  platform: str | None = None
-
-  Ctrl_port: serial.Serial | None = None
-  Data_port: serial.Serial | None = None
-
-  Ctrl_port_baudrate: int | None = None
-  Data_port_baudrate: int | None = None
-
-  State: str | None = None
-  Data_port_Reading: bool | None = None
-
-  buffer: bytearray | None = None
-
-  config: Configuration.Configuration_2_1_0 | None = None
-  data: DataFrame.DataFrame | None = None
-
-  logger: Log.Logger | None = None
-
   def __init__(self, platfrom: str, Ctrl_port_name: str, Data_port_name: str, Ctrl_port_baudrate: int = 115200, Data_port_baudrate: int = 921600):
 
     self.platfrom = platfrom
@@ -50,7 +32,7 @@ class Ti_mmWave:
 
     self.buffer = bytearray()
 
-    self.config = Configuration.Configuration_2_1_0(platform=platfrom)
+    self.config = Configuration.Configuration_2_1_0(platfrom=platfrom)
     self.data = DataFrame.DataFrame()
 
     self.State = "initialized"
@@ -180,22 +162,22 @@ class Ti_mmWave:
     # read DataFrame header
     self.data.version         , index = uint8_2_uint32(buffer_uint8, index)
     self.data.totalPacketLen  , index = uint8_2_uint32(buffer_uint8, index)
-    self.data.platform        , index = uint8_2_uint32(buffer_uint8, index)
+    self.data.platfrom        , index = uint8_2_uint32(buffer_uint8, index)
     self.data.frameNumber     , index = uint8_2_uint32(buffer_uint8, index)
     self.data.timeCpuCycles   , index = uint8_2_uint32(buffer_uint8, index)
     self.data.numDetectedObj  , index = uint8_2_uint32(buffer_uint8, index)
     self.data.numTLVs         , index = uint8_2_uint32(buffer_uint8, index)
-    if self.platform == "xWR16xx":
+    if self.platfrom == "xWR16xx":
       self.data.subFrameNumber  , index = uint8_2_uint32(buffer_uint8, index)
     if log:
       self.logger.log(event="{}.updateData".format(self.__str__()), level="logging", message="self.data.version       : {}.{}.{}.{}".format(int((self.data.version&0xff000000)>>24), int((self.data.version&0x00ff0000)>16), int((self.data.version&0x0000ff00)>8), int((self.data.version&0x000000ff))))
       self.logger.log(event="{}.updateData".format(self.__str__()), level="logging", message="self.data.totalPacketLen: {}".format(self.data.totalPacketLen))
-      self.logger.log(event="{}.updateData".format(self.__str__()), level="logging", message="self.data.platform      : {}".format(format(self.data.platform, 'x')))
+      self.logger.log(event="{}.updateData".format(self.__str__()), level="logging", message="self.data.platfrom      : {}".format(format(self.data.platfrom, 'x')))
       self.logger.log(event="{}.updateData".format(self.__str__()), level="logging", message="self.data.frameNumber   : {}".format(self.data.frameNumber   ))
       self.logger.log(event="{}.updateData".format(self.__str__()), level="logging", message="self.data.timeCpuCycles : {}".format(self.data.timeCpuCycles ))
       self.logger.log(event="{}.updateData".format(self.__str__()), level="logging", message="self.data.numDetectedObj: {}".format(self.data.numDetectedObj))
       self.logger.log(event="{}.updateData".format(self.__str__()), level="logging", message="self.data.numTLVs       : {}".format(self.data.numTLVs       ))
-      if self.platform == "xWR16xx":
+      if self.platfrom == "xWR16xx":
         self.logger.log(event="{}.updateData".format(self.__str__()), level="logging", message="self.data.subFrameNumber: {}".format(self.data.subFrameNumber))
     
     for TLV_index in range(self.data.numTLVs):
