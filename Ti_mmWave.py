@@ -1,5 +1,6 @@
 # %%
 import time
+import math
 import threading
 
 import serial # pyserial-3.5
@@ -7,10 +8,11 @@ import numpy # numpy-1.26.0
 
 import Log
 import SerialTool
+
 import Configuration
+import DataFrame
 
 # %% 
-# (Ctrl_port_name, Data_port_name, Ctrl_port_baudrate, Data_port_baudrate, Ctrl_file_name, Data_file_name)
 class Ti_mmWave:
 
   platform: str | None = None
@@ -24,7 +26,10 @@ class Ti_mmWave:
   State: str | None = None
   Data_port_Reading: bool | None = None
 
+  buffer: bytearray | None = None
+
   config: Configuration.Configuration_2_1_0 | None = None
+  data: DataFrame.DataFrame | None = None
 
   logger: Log.Logger | None = None
 
@@ -42,14 +47,18 @@ class Ti_mmWave:
 
     self.logger = Log.Logger(fileName="Log/ti_mmWave.log")
 
-    self.config = Configuration.Configuration_2_1_0(platform=platfrom)
-
     self.State = "initialized"
     self.Data_port_Reading = False
+
+    self.buffer = bytearray()
+
+    self.config = Configuration.Configuration_2_1_0(platform=platfrom)
+    self.data = DataFrame.DataFrame()
 
     self.sensorStop()
 
   def __delattr__(self, __name: str) -> None:
+    self.sensorStop()
     self.Ctrl_port.close()
     self.Data_port.close()
 
@@ -125,7 +134,8 @@ class Ti_mmWave:
     self.State = "Sensor_Start"
 
   def record_DataPort(self, record_file_name: str="Record/Data.bin"):
-    if not self.Data_port_Reading:
+    while self.Data_port_Reading: pass # wait for dataport reading
+    else: 
       self.Data_port_Reading = True
       try:
         with open(file=record_file_name, mode='wb+') as record_file:
@@ -136,24 +146,126 @@ class Ti_mmWave:
         pass
       self.Data_port_Reading = False
 
-# %%
-if __name__ == '__main__':
-  device = Ti_mmWave(Ctrl_port_name="COM3", Data_port_name="COM4", Ctrl_port_baudrate=115200, Data_port_baudrate=921600)
-  print("configured device...")
-  device.configure_file(CFG_file_name="Profile\profile.cfg")
-  device.sensorStart()
-  print("sensorStart")
-  time.sleep(device.config.configParameters["framePeriodicity"]/1000)
-  print("record_DataPort")
-  device.record_DataPort()
+  def parse_DataPort(self):
+    self.buffer += bytearray(self.Data_port.read(self.Data_port.in_waiting))
+    buffer_uint8: numpy.NDArray[numpy.uint8] = numpy.frombuffer(buffer=self.buffer, dtype=numpy.uint8)
+    BASE_NUMBER_OF_BITS = 8
+    index: int | None = None
+    
+    margeUint8_array = lambda num_of_uint8: [2**(8*i) for i in range(num_of_uint8)]
+    margeUint8 = lambda uint8_1DArray, index, N: (numpy.matmul(uint8_1DArray[index:index+N],margeUint8_array(N)), index+N)
+    uint8_2_uintN = lambda uint8_1DArray, index, N: (numpy.matmul(uint8_1DArray[index:index+(N/8)],margeUint8_array((N/8))), index+(N/8))
+    uint8_2_uint16 = lambda uint8_1DArray, index: (numpy.uint16(numpy.matmul(uint8_1DArray[index:index+2],margeUint8_array(2))), index+2)
+    uint8_2_uint32 = lambda uint8_1DArray, index: (numpy.uint32(numpy.matmul(uint8_1DArray[index:index+4],margeUint8_array(4))), index+4)
+    uint8_2_uint64 = lambda uint8_1DArray, index: (numpy.uint64(numpy.matmul(uint8_1DArray[index:index+8],margeUint8_array(8))), index+8)
+    uint8_2_int16 = lambda uint8_1DArray, index: (numpy.int16(numpy.matmul(uint8_1DArray[index:index+2],margeUint8_array(2))), index+2)
+    uint8_2_int32 = lambda uint8_1DArray, index: (numpy.int32(numpy.matmul(uint8_1DArray[index:index+4],margeUint8_array(4))), index+4)
 
-  device.sensorStop()
-  print("sensorStop")
-  print("configured device...")
-  device.config.set_CfarRangeThreshold_dB(threshold_dB=5)
-  device.config.set_RemoveStaticClutter(enabled=True)
-  device.config.set_FramePeriodicity(milliseconds=1500)
-  device.configure()
-  device.sensorStart()
-  print("sensorStart")
+    QFormat = lambda Q, value: value / (2**Q)
+    # find the location of magicWords
+    dataFrame_startIndex = -1
+    for startIndex in numpy.where(buffer_uint8 == self.data.magicWords[0])[0]:
+      # for magicWord_Index in range(1, len(self.data.magicWords)):
+      if numpy.all(buffer_uint8[startIndex:startIndex+BASE_NUMBER_OF_BITS] == numpy.array(self.data.magicWords, dtype=numpy.uint8)):
+        dataFrame_startIndex = startIndex
+        break
+
+    # Remove redundant data before location of magicWords
+    self.buffer = self.buffer[dataFrame_startIndex*BASE_NUMBER_OF_BITS:] # Warning: uncheck
+    buffer_uint8 = buffer_uint8[dataFrame_startIndex:]
+
+    index = len(self.data.magicWords)
+    # read DataFrame header
+    self.data.version         , index = uint8_2_uint32(buffer_uint8, index) # print("self.data.version       :", format(self.data.version , 'x'), ', index: ', index)
+    self.data.totalPacketLen  , index = uint8_2_uint32(buffer_uint8, index) # print("self.data.totalPacketLen:", self.data.totalPacketLen, ', index: ', index)
+    self.data.platform        , index = uint8_2_uint32(buffer_uint8, index) # print("self.data.platform      :", format(self.data.platform, 'x'), ', index: ', index)
+    self.data.frameNumber     , index = uint8_2_uint32(buffer_uint8, index) # print("self.data.frameNumber   :", self.data.frameNumber   , ', index: ', index)
+    self.data.timeCpuCycles   , index = uint8_2_uint32(buffer_uint8, index) # print("self.data.timeCpuCycles :", self.data.timeCpuCycles , ', index: ', index)
+    self.data.numDetectedObj  , index = uint8_2_uint32(buffer_uint8, index) # print("self.data.numDetectedObj:", self.data.numDetectedObj, ', index: ', index)
+    self.data.numTLVs         , index = uint8_2_uint32(buffer_uint8, index) # print("self.data.numTLVs       :", self.data.numTLVs       , ', index: ', index)
+    if self.platform == "xWR16xx":
+      self.data.subFrameNumber  , index = uint8_2_uint32(buffer_uint8, index) # print("self.data.subFrameNumber:", self.data.subFrameNumber, ', index: ', index)
+    print("self.data.version       :", format(self.data.version , '08x'))
+    print("self.data.version       :", "{}.{}.{}.{}".format(int((self.data.version&0xff000000)>>24), int((self.data.version&0x00ff0000)>16), int((self.data.version&0x0000ff00)>8), int((self.data.version&0x000000ff))))
+    print("self.data.totalPacketLen:", self.data.totalPacketLen)
+    print("self.data.platform      :", format(self.data.platform, 'x'))
+    print("self.data.frameNumber   :", self.data.frameNumber   )
+    print("self.data.timeCpuCycles :", self.data.timeCpuCycles )
+    print("self.data.numDetectedObj:", self.data.numDetectedObj)
+    print("self.data.numTLVs       :", self.data.numTLVs       )
+    if self.platform == "xWR16xx":
+      print("self.data.subFrameNumber:", self.data.subFrameNumber)
+    
+    for TLV_index in range(self.data.numTLVs):
+      TLV_TypeId, index = uint8_2_uint32(buffer_uint8, index)
+      TLV_Length, index = uint8_2_uint32(buffer_uint8, index)
+      print("  TLV_TypeId:", TLV_TypeId)
+      print("  TLV_Length:", TLV_Length)
+      if TLV_TypeId == 1:
+        self.data.detectedObjects.infomation.numDetetedObj, index = uint8_2_uint16(buffer_uint8, index)
+        self.data.detectedObjects.infomation.xyzQFormat   , index = uint8_2_uint16(buffer_uint8, index)
+        print("    self.data.detectedObjects.infomation.numDetetedObj:", self.data.detectedObjects.infomation.numDetetedObj)
+        print("    self.data.detectedObjects.infomation.xyzQFormat   :", self.data.detectedObjects.infomation.xyzQFormat   )
+        for DetetedObj_index in range(self.data.detectedObjects.infomation.numDetetedObj):
+          rangeIdx  , index = uint8_2_uint16(buffer_uint8, index)
+          dopplerIdx, index = uint8_2_int16(buffer_uint8, index)
+          peakVal   , index = uint8_2_uint16(buffer_uint8, index)
+          x         , index = uint8_2_int16(buffer_uint8, index)
+          y         , index = uint8_2_int16(buffer_uint8, index)
+          z         , index = uint8_2_int16(buffer_uint8, index)
+          # print("    DetetedObj[{}]:".format(DetetedObj_index))
+          # print("      rangeIdx  :", rangeIdx  )
+          # print("      dopplerIdx:", dopplerIdx)
+          # print("      peakVal   :", peakVal   )
+          # print("      x         :", x         , "->", x / (2**self.data.detectedObjects.infomation.xyzQFormat))
+          # print("      y         :", y         , "->", y / (2**self.data.detectedObjects.infomation.xyzQFormat))
+          # print("      z         :", z         , "->", z / (2**self.data.detectedObjects.infomation.xyzQFormat))
+          self.data.detectedObjects.Objects.append(self.data.detectedObjects.DetectedObj(rangeIdx, dopplerIdx, peakVal, x, y, z))
+          print("    DetetedObj[{index:{index_log10}d}]: ({rangeIdx:3d}, {dopplerIdx:3d}, {peakVal:3d}, {x:5d}, {y:5d}, {z:5d}) -> ({xQFormat:10.4f}, {yQFormat:10.4f}, {zQFormat:10.4f})".format(
+            index=DetetedObj_index, 
+            index_log10=int(math.log10(self.data.detectedObjects.infomation.numDetetedObj))+1, 
+            rangeIdx=rangeIdx, 
+            dopplerIdx=dopplerIdx, 
+            peakVal=peakVal, 
+            x=x, 
+            y=y, 
+            z=z, 
+            xQFormat=QFormat(self.data.detectedObjects.infomation.xyzQFormat, x), 
+            yQFormat=QFormat(self.data.detectedObjects.infomation.xyzQFormat, y), 
+            zQFormat=QFormat(self.data.detectedObjects.infomation.xyzQFormat, z)))
+        pass
+      elif TLV_TypeId == 2:
+        pass
+      elif TLV_TypeId == 3:
+        pass
+      elif TLV_TypeId == 4:
+        pass
+      elif TLV_TypeId == 5:
+        pass
+      elif TLV_TypeId == 6:
+        pass
+      else: print("Error TypeId:", TLV_TypeId)
+
+
+# %%
+# if __name__ == '__main__':
+device = Ti_mmWave(platfrom="xWR14xx", Ctrl_port_name="COM3", Data_port_name="COM4", Ctrl_port_baudrate=115200, Data_port_baudrate=921600)
+print("configured device...")
+device.configure_file(CFG_file_name="Profile\profile.cfg")
+device.sensorStart()
+device.sensorStop()
+device.config.set_CfarRangeThreshold_dB(threshold_dB=5)
+device.config.set_RemoveStaticClutter(enabled=True)
+device.config.set_FramePeriodicity(milliseconds=1500)
+device.configure()
+device.sensorStart()
+print("sensorStart")
+# %%
+# time.sleep(device.config.configParameters["framePeriodicity"]/1000)
+# print("record_DataPort")
+# device.record_DataPort()
+time.sleep(device.config.configParameters["framePeriodicity"]/1000)
+device.parse_DataPort()
+# %%
+del device
 # %%
