@@ -42,4 +42,3 @@ class DataFrame:
 
     # data
     self.detectedObjects: DataFrame.DetectedObjects | None = DataFrame.DetectedObjects()
-    # self.detectedObjects = DetectedObjects()
