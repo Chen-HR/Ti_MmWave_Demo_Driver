@@ -40,7 +40,7 @@ class Ti_mmWave:
 
     self.sensorStop()
 
-  def __delattr__(self, __name: str) -> None:
+  def __del__(self) -> None:
     self.sensorStop()
     self.Ctrl_port.close()
     self.Data_port.close()
@@ -48,73 +48,63 @@ class Ti_mmWave:
   def __str__(self) -> str:
     return "Ti_mmWave('{platform}', '{Ctrl_port}', '{Data_port}', {Ctrl_port_baudrate}, {Data_port_baudrate})".format(platform=self.platform, Ctrl_port=self.Ctrl_port.name, Data_port=self.Data_port.name, Ctrl_port_baudrate=self.Ctrl_port_baudrate, Data_port_baudrate=self.Data_port_baudrate)
 
-  def configure_unit(self, command: str, wait: float | int = 0.05, echo: bool = False):
+  def configure_unit(self, commandLine: str, wait: float | int = 0.05, log: bool = False):
     """unit configuration
 
     Args:
-      command (str): Configuration command
-      wait (float | int, optional): Configured wait delay. Defaults to 0.1.
-      echo (bool, optional): Display configuration instructions. Defaults to False.
+      commandLine (str): Configuration commandLine
+      wait (float | int, optional): Configured wait delay. Defaults to 0.05.
+      log (bool, optional): log configuration instructions. Defaults to False.
     """
-    command = command.rstrip('\n').rstrip('\r')
-    self.Ctrl_port.write(command.__add__('\n').encode())
+    commandLine = commandLine.strip()
+    self.Ctrl_port.write(commandLine.__add__('\n').encode())
 
-    self.config.parse_commandParameters(commandLine=command)
-    self.logger.log(event="{}.config".format(self.__str__()), level="logging", message="command: `{command}`".format(command=command))
-    if echo: print(command)
+    self.config.parse_commandLine(commandLine=commandLine)
+    if log: self.logger.log(event="{}.configure_unit".format(self.__str__()), level="logging", message="commandLine: `{commandLine}`".format(commandLine=commandLine))
 
-    command_main: str = command.split(' ')[0]
-    if command_main == "sensorStart":
+    command: str = commandLine.split(' ')[0]
+    if command == "sensorStart":
       self.State = "Sensor_Start"
       self.logger.log(event="{}.stateChanged".format(self.__str__()), level="logging", message="Sensor Start")
-    if command_main == "sensorStop":
+    if command == "sensorStop":
       self.State = "Sensor_Stop"
       self.logger.log(event="{}.stateChanged".format(self.__str__()), level="logging", message="Sensor Stop")
     
     time.sleep(wait)
 
-  def configure(self, commands: list[str] | str | None = None, wait: float | int = 0.05, echo: bool = False):
+  def configure(self, commandLines: list[str] | str | None = None, wait: float | int = 0.05, log: bool = False):
     """configuration
 
     Args:
-        commands (list[str] | str | None, optional): Configuration commands. Defaults to None, it will use self.config data.
+        commandLines (list[str] | str | None, optional): Configuration commandLines. Defaults to None, it will use self.config data.
         wait (float | int, optional): Configured wait delay. Defaults to 0.05.
-        echo (bool, optional): Display configuration instructions. Defaults to False.
+        log (bool, optional): log configuration instructions. Defaults to False.
     """
-    if commands == None:
-      for command in self.config.commandParameters.keys():
-        if command != "sensorStart" and command != "sensorStop" and command !="flushCfg":
-          self.configure_unit(self.config.command_Generator(command), wait=wait, echo=echo)
+    if commandLines == None:
+      for commandLine in self.config.command.commandLines():
+        self.configure_unit(commandLine=commandLine, wait=wait, log=log)
     else: 
-      for command in commands: # Assume `commands` is list[str]
-        if len(command) == 1: # `commands` is str, not list[str]
-          self.configure_unit(command=commands, wait=wait, echo=echo)
+      for commandLine in commandLines: # Assume `commandLines` is list[str]
+        if len(commandLine) == 1: # `commandLines` is str, not list[str]
+          self.configure_unit(commandLine=commandLines, wait=wait, log=log)
           break
-        self.configure_unit(command=command, wait=wait, echo=echo)
-  # def configure(self, wait: float | int = 0.05, echo: bool = False):
-  #   """configuration fron config
-  #   Args:
-  #     wait (float | int, optional): Configured wait delay. Defaults to 0.1.
-  #     echo (bool, optional): Display configuration instructions. Defaults to False.
-  #   """
-  #   for command in self.config.commandParameters.keys(): # Assume `commands` is list[str]
-  #     self.configure_unit(command=self.config.command_Generator(command=command), wait=wait, echo=echo)
-  def configure_file(self, CFG_file_name: str = "profile.cfg", wait: float | int = 0.05, echo: bool = False):
+        self.configure_unit(commandLine=commandLine, wait=wait, log=log)
+  def configure_file(self, CFG_file_name: str = "profile.cfg", wait: float | int = 0.05, log: bool = False):
     """configuration from file
 
     Args:
       CFG_file_name (str): Configuration command
-      wait (float | int, optional): Configured wait delay. Defaults to 0.1.
-      echo (bool, optional): Display configuration instructions. Defaults to False.
+      wait (float | int, optional): Configured wait delay. Defaults to 0.05.
+      log (bool, optional): log configuration instructions. Defaults to False.
     """
     with open(file=CFG_file_name, mode="r") as CFG_file:
-      CFG_lines: list[str] = [CFG_line.rstrip('\r\n').__add__('\n') for CFG_line in CFG_file.readlines()]
-      self.configure(commands=CFG_lines, wait=wait, echo=echo)
+      CFG_lines: list[str] = [CFG_line.strip() for CFG_line in CFG_file.readlines()]
+      self.configure(commandLines=CFG_lines, wait=wait, log=log)
 
-  def sensorStop(self):
-    self.configure_unit("sensorStop")
-  def sensorStart(self):
-    self.configure_unit("sensorStart")
+  def sensorStop(self, wait: float | int = 0.05, log: bool = False):
+    self.configure_unit(commandLine="sensorStop", wait=wait, log=log)
+  def sensorStart(self, wait: float | int = 0.05, log: bool = False):
+    self.configure_unit(commandLine="sensorStart", wait=wait, log=log)
 
   def record_DataPort(self, record_file_name: str="Record/Data.bin"):
     while self.Data_port_Reading: pass # wait for dataport reading
@@ -238,20 +228,20 @@ class Ti_mmWave:
 if __name__ == '__main__':
   device = Ti_mmWave(platform="xWR14xx", Ctrl_port_name="COM3", Data_port_name="COM4", Ctrl_port_baudrate=115200, Data_port_baudrate=921600)
   print("configured device...")
-  device.configure_file(CFG_file_name="Profile\profile.cfg")
-  device.sensorStart()
-  device.sensorStop()
+  device.configure_file(CFG_file_name="Profile\profile.cfg", log=True)
+  device.sensorStart(log=True)
+  device.sensorStop(log=True)
   device.config.set_CfarRangeThreshold_dB(threshold_dB=5)
   device.config.set_RemoveStaticClutter(enabled=True)
   device.config.set_FramePeriodicity(milliseconds=1500)
-  device.configure()
-  device.sensorStart()
+  device.configure(log=True)
+  device.sensorStart(log=True)
   print("sensorStart")
-  # time.sleep(device.config.configParameters["framePeriodicity"]/1000)
+  # time.sleep(device.config.parameter.framePeriodicity/1000)
   # print("record_DataPort")
   # device.record_DataPort()
-  time.sleep(device.config.configParameters["framePeriodicity"]/1000)
+  time.sleep(device.config.parameter.framePeriodicity/1000)
   device.parse_DataPort(log=True)
-  device.sensorStop()
+  device.sensorStop(log=True)
   del device
 # %%
