@@ -38,12 +38,15 @@ class Ti_mmWave:
     self.State = "initialized"
     self.Data_port_Reading = False
 
+    self.logger.log(event="{}.initializing".format(self.__str__()), level="infomation", message="Initialization completed")
     self.sensorStop()
 
   def __del__(self) -> None:
+    self.logger.log(event="{}.deleting".format(self.__str__()), level="infomation", message="Delete device...")
     self.sensorStop()
     self.Ctrl_port.close()
     self.Data_port.close()
+    self.logger.log(event="{}.deleting".format(self.__str__()), level="infomation", message="Delete completed")
 
   def __str__(self) -> str:
     return "Ti_mmWave('{platform}', '{Ctrl_port}', '{Data_port}', {Ctrl_port_baudrate}, {Data_port_baudrate})".format(platform=self.platform, Ctrl_port=self.Ctrl_port.name, Data_port=self.Data_port.name, Ctrl_port_baudrate=self.Ctrl_port_baudrate, Data_port_baudrate=self.Data_port_baudrate)
@@ -64,11 +67,13 @@ class Ti_mmWave:
 
     command: str = commandLine.split(' ')[0]
     if command == "sensorStart":
+      old_State: str = self.State
       self.State = "Sensor_Start"
-      self.logger.log(event="{}.stateChanged".format(self.__str__()), level="logging", message="Sensor Start")
+      if old_State != self.State: self.logger.log(event="{}.stateChanged".format(self.__str__()), level="logging", message="Sensor Start")
     if command == "sensorStop":
+      old_State: str = self.State
       self.State = "Sensor_Stop"
-      self.logger.log(event="{}.stateChanged".format(self.__str__()), level="logging", message="Sensor Stop")
+      if old_State != self.State: self.logger.log(event="{}.stateChanged".format(self.__str__()), level="logging", message="Sensor Stop")
     
     time.sleep(wait)
 
