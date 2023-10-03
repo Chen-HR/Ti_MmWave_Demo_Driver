@@ -1,5 +1,6 @@
 # %%
 import math
+import re
 import copy
 
 import Log
@@ -19,7 +20,7 @@ class Configuration_2_1_0:
 
   http://www.ti.com
 
-  Currently only supports `xWR14xx`
+  only test on `AWR1443BOOST`(`xWR14xx`)
   """
   __ProductRelease__ = '2.1.0'
   class Command:
@@ -462,15 +463,15 @@ class Configuration_2_1_0:
         self.adcMode = None
       def parse(self, commandLine: str):
         parts: list[str] = commandLine.split(' ')
-        if parts[0] == Configuration_2_1_0.Command.BpmCfg.Command: 
+        if parts[0] == Configuration_2_1_0.Command.LowPower.Command: 
           _ = parts.pop(0)
           if len(parts) == 2:
             self.dontCare = int(parts.pop(0))
             self.adcMode = int(parts.pop(0))
       @property
       def commandLine(self):
-        return Configuration_2_1_0.Command.BpmCfg.Format.format(
-          Command = Configuration_2_1_0.Command.BpmCfg.Command, 
+        return Configuration_2_1_0.Command.LowPower.Format.format(
+          Command = Configuration_2_1_0.Command.LowPower.Command, 
           dontCare = str(self.dontCare) if self.dontCare != None else "", 
           adcMode = str(self.adcMode) if self.adcMode != None else ""
         )
@@ -556,7 +557,7 @@ class Configuration_2_1_0:
         self.frameTrigDelay = None
       def parse(self, commandLine: str):
         parts: list[str] = commandLine.split(' ')
-        if parts[0] == Configuration_2_1_0.Command.FrameCfg.Command: 
+        if parts[0] == Configuration_2_1_0.Command.AdvFrameCfg.Command: 
           _ = parts.pop(0)
           if len(parts) == 5:
             self.numOfSubFrames = int(parts.pop(0))
@@ -566,8 +567,8 @@ class Configuration_2_1_0:
             self.frameTrigDelay = float(parts.pop(0))
       @property
       def commandLine(self):
-        return Configuration_2_1_0.Command.FrameCfg.Format.format(
-          Command = Configuration_2_1_0.Command.FrameCfg.Command, 
+        return Configuration_2_1_0.Command.AdvFrameCfg.Format.format(
+          Command = Configuration_2_1_0.Command.AdvFrameCfg.Command, 
           numOfSubFrames = str(self.numOfSubFrames) if self.numOfSubFrames != None else "", 
           forceProfile = str(self.forceProfile) if self.forceProfile != None else "", 
           numFrames = str(self.numFrames) if self.numFrames != None else "", 
@@ -1380,35 +1381,37 @@ class Configuration_2_1_0:
       pass
     def commandLines(self, sensorStop: bool = False, sensorStart: bool = False):
       commandLines: list[str] = []
-      if sensorStop: commandLines.append(self.sensorStop.Command)
-      commandLines.append(self.flushCfg.Command)
-      commandLines.append(self.dfeDataOutputMode.Command)
-      commandLines.append(self.channelCfg.Command)
-      commandLines.append(self.adcCfg.Command)
-      commandLines.append(self.adcbufCfg.Command)
-      commandLines.append(self.profileCfg.Command)
+      if sensorStop: commandLines.append(self.sensorStop.commandLine)
+      commandLines.append(self.flushCfg.commandLine)
+      commandLines.append(self.dfeDataOutputMode.commandLine)
+      commandLines.append(self.channelCfg.commandLine)
+      commandLines.append(self.adcCfg.commandLine)
+      commandLines.append(self.adcbufCfg.commandLine)
+      commandLines.append(self.profileCfg.commandLine)
       for chirpCfg in self.chirpCfg_list:
-        commandLines.append(chirpCfg.Command)
-      commandLines.append(self.bpmCfg.Command)
-      commandLines.append(self.lowPower.Command)
-      commandLines.append(self.frameCfg.Command)
-      commandLines.append(self.advFrameCfg.Command)
-      commandLines.append(self.subFrameCfg.Command)
-      commandLines.append(self.guiMonitor.Command)
-      commandLines.append(self.cfarCfg.Command)
-      commandLines.append(self.peakGrouping.Command)
-      commandLines.append(self.multiObjBeamForming.Command)
-      commandLines.append(self.calibDcRangeSig.Command)
-      commandLines.append(self.extendedMaxVelocity.Command)
-      commandLines.append(self.clutterRemoval.Command)
-      commandLines.append(self.compRangeBiasAndRxChanPhase.Command)
-      commandLines.append(self.measureRangeBiasAndRxChanPhase.Command)
-      commandLines.append(self.nearFieldCfg.Command)
-      commandLines.append(self.cQRxSatMonitor.Command)
-      commandLines.append(self.cQSigImgMonitor.Command)
-      commandLines.append(self.analogMonitor.Command)
-      commandLines.append(self.lvdsStreamCfg.Command)
-      if sensorStart: commandLines.append(self.sensorStart.Command)
+        commandLines.append(chirpCfg.commandLine)
+      commandLines.append(self.bpmCfg.commandLine)
+      commandLines.append(self.lowPower.commandLine)
+      commandLines.append(self.frameCfg.commandLine)
+      commandLines.append(self.advFrameCfg.commandLine)
+      commandLines.append(self.subFrameCfg.commandLine)
+      commandLines.append(self.guiMonitor.commandLine)
+      commandLines.append(self.cfarCfg.commandLine)
+      commandLines.append(self.peakGrouping.commandLine)
+      commandLines.append(self.multiObjBeamForming.commandLine)
+      commandLines.append(self.calibDcRangeSig.commandLine)
+      commandLines.append(self.extendedMaxVelocity.commandLine)
+      commandLines.append(self.clutterRemoval.commandLine)
+      commandLines.append(self.compRangeBiasAndRxChanPhase.commandLine)
+      commandLines.append(self.measureRangeBiasAndRxChanPhase.commandLine)
+      commandLines.append(self.nearFieldCfg.commandLine)
+      commandLines.append(self.cQRxSatMonitor.commandLine)
+      commandLines.append(self.cQSigImgMonitor.commandLine)
+      commandLines.append(self.analogMonitor.commandLine)
+      commandLines.append(self.lvdsStreamCfg.commandLine)
+      if sensorStart: commandLines.append(self.sensorStart.commandLine)
+      for i in range(len(commandLines)):
+        commandLines[i] = re.sub(r'\s+', ' ', commandLines[i].strip())
       return commandLines
 
   # commandParameters_backup = dict()
