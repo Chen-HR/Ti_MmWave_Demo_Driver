@@ -24,7 +24,8 @@ class Configuration_2_1_0:
   """
   __ProductRelease__ = '2.1.0'
   class Command:
-
+    """Command controller. Responsible for classifying commands and integrating commands.
+    """
     class SensorStart:
       """
         sensor Start command to RadarSS and datapath.
@@ -39,14 +40,24 @@ class Configuration_2_1_0:
         #   1 - Do full reconfiguration of the device
         #   0 - Skip reconfiguration and just start the sensor using already provided configuration.
         self.doReconfig = None
-      def parse(self, commandLine: str):
+      def parse(self, commandLine: str) -> None:
+        """parse command line
+
+        Args:
+          commandLine (str): one line of command (a command)
+        """
         parts: list[str] = commandLine.split(' ')
         if parts[0] == Configuration_2_1_0.Command.SensorStart.Command: 
           _ = parts.pop(0)
           if len(parts) == 1:
             self.doReconfig = int(parts.pop(0))
       @property
-      def commandLine(self):
+      def commandLine(self) -> str:
+        """Convert command data to command line string
+
+        Returns:
+          str: command line string
+        """
         return Configuration_2_1_0.Command.SensorStart.Format.format(
           Command = Configuration_2_1_0.Command.SensorStart.Command, 
           doReconfig = str(self.doReconfig) if self.doReconfig != None else ""
@@ -60,12 +71,22 @@ class Configuration_2_1_0:
       Format= "{Command}"
       def __init__(self):
         pass
-      def parse(self, commandLine: str):
+      def parse(self, commandLine: str) -> None:
+        """parse command line
+
+        Args:
+          commandLine (str): one line of command (a command)
+        """
         parts: list[str] = commandLine.split(' ')
         if parts[0] == Configuration_2_1_0.Command.FlushCfg.Command: 
           _ = parts.pop(0)
       @property
-      def commandLine(self):
+      def commandLine(self) -> str:
+        """Convert command data to command line string
+
+        Returns:
+          str: command line string
+        """
         return Configuration_2_1_0.Command.FlushCfg.Format.format(
           Command = Configuration_2_1_0.Command.FlushCfg.Command
         )
@@ -83,14 +104,24 @@ class Configuration_2_1_0:
         #   2 - continuous chirping
         #   3 - advanced frame config
         self.modeType = None
-      def parse(self, commandLine: str):
+      def parse(self, commandLine: str) -> None:
+        """parse command line
+
+        Args:
+          commandLine (str): one line of command (a command)
+        """
         parts: list[str] = commandLine.split(' ')
         if parts[0] == Configuration_2_1_0.Command.DfeDataOutputMode.Command: 
           _ = parts.pop(0)
           if len(parts) == 1:
             self.modeType = int(parts.pop(0))
       @property
-      def commandLine(self):
+      def commandLine(self) -> str:
+        """Convert command data to command line string
+
+        Returns:
+          str: command line string
+        """
         return Configuration_2_1_0.Command.DfeDataOutputMode.Format.format(
           Command = Configuration_2_1_0.Command.DfeDataOutputMode.Command, 
           modeType = str(self.modeType) if self.modeType != None else ""
@@ -114,7 +145,12 @@ class Configuration_2_1_0:
         # <cascading>
         #   SoC cascading, not applicable, set to 0
         self.cascading = None
-      def parse(self, commandLine: str):
+      def parse(self, commandLine: str) -> None:
+        """parse command line
+
+        Args:
+          commandLine (str): one line of command (a command)
+        """
         parts: list[str] = commandLine.split(' ')
         if parts[0] == Configuration_2_1_0.Command.ChannelCfg.Command: 
           _ = parts.pop(0)
@@ -123,7 +159,12 @@ class Configuration_2_1_0:
             self.txChannelEn = int(parts.pop(0))
             self.cascading = int(parts.pop(0))
       @property
-      def commandLine(self):
+      def commandLine(self) -> str:
+        """Convert command data to command line string
+
+        Returns:
+          str: command line string
+        """
         return Configuration_2_1_0.Command.ChannelCfg.Format.format(
           Command = Configuration_2_1_0.Command.ChannelCfg.Command, 
           rxChannelEn = str(self.rxChannelEn) if self.rxChannelEn != None else "", 
@@ -149,7 +190,12 @@ class Configuration_2_1_0:
         #     1 - complex 1x (image band filtered output)
         #     2 - complex 2x (image band visible)
         self.adcOutputFmt = None
-      def parse(self, commandLine: str):
+      def parse(self, commandLine: str) -> None:
+        """parse command line
+
+        Args:
+          commandLine (str): one line of command (a command)
+        """
         parts: list[str] = commandLine.split(' ')
         if parts[0] == Configuration_2_1_0.Command.AdcCfg.Command: 
           _ = parts.pop(0)
@@ -157,7 +203,12 @@ class Configuration_2_1_0:
             self.numADCBits = int(parts.pop(0))
             self.txChannelEn = int(parts.pop(0))
       @property
-      def commandLine(self):
+      def commandLine(self) -> str:
+        """Convert command data to command line string
+
+        Returns:
+          str: command line string
+        """
         return Configuration_2_1_0.Command.AdcCfg.Format.format(
           Command = Configuration_2_1_0.Command.AdcCfg.Command, 
           numADCBits = str(self.numADCBits) if self.numADCBits != None else "", 
@@ -195,7 +246,12 @@ class Configuration_2_1_0:
         #     0-8 for xWR16xx (conditions apply, see description in "Usage in mmW demo xwr16xx" column)
         #     only 1 for xWR14xx
         self.ChirpThreshold = None
-      def parse(self, commandLine: str):
+      def parse(self, commandLine: str) -> None:
+        """parse command line
+
+        Args:
+          commandLine (str): one line of command (a command)
+        """
         parts: list[str] = commandLine.split(' ')
         if parts[0] == Configuration_2_1_0.Command.AdcbufCfg.Command: 
           _ = parts.pop(0)
@@ -207,7 +263,12 @@ class Configuration_2_1_0:
             self.ChanInterleave = int(parts.pop(0))
             self.ChirpThreshold = int(parts.pop(0))
       @property
-      def commandLine(self):
+      def commandLine(self) -> str:
+        """Convert command data to command line string
+
+        Returns:
+          str: command line string
+        """
         return Configuration_2_1_0.Command.AdcbufCfg.Format.format(
           Command = Configuration_2_1_0.Command.AdcbufCfg.Command, 
           subFrameIdx = str(self.subFrameIdx) if self.subFrameIdx != None else "", 
@@ -300,7 +361,12 @@ class Configuration_2_1_0:
         # <rxGain>
         #   OR'ed value of RX gain in dB and RF gain target (See mmwavelink doxgen for details)
         self.rxGain = None
-      def parse(self, commandLine: str):
+      def parse(self, commandLine: str) -> None:
+        """parse command line
+
+        Args:
+          commandLine (str): one line of command (a command)
+        """
         parts: list[str] = commandLine.split(' ')
         if parts[0] == Configuration_2_1_0.Command.ProfileCfg.Command: 
           _ = parts.pop(0)
@@ -320,7 +386,12 @@ class Configuration_2_1_0:
             self.hpfCornerFreq2 = int(parts.pop(0))
             self.rxGain = int(parts.pop(0))
       @property
-      def commandLine(self):
+      def commandLine(self) -> str:
+        """Convert command data to command line string
+
+        Returns:
+          str: command line string
+        """
         return Configuration_2_1_0.Command.ProfileCfg.Format.format(
           Command = Configuration_2_1_0.Command.ProfileCfg.Command, 
           profileId = str(self.profileId) if self.profileId != None else "", 
@@ -364,7 +435,12 @@ class Configuration_2_1_0:
         self.adcStartTimeVariation = None
         # tx antenna enable mask (Tx2,Tx1) e.g (10)b: Tx2 enabled, Tx1 disabled.
         self.txAntennaEnableMask = None
-      def parse(self, commandLine: str):
+      def parse(self, commandLine: str) -> None:
+        """parse command line
+
+        Args:
+          commandLine (str): one line of command (a command)
+        """
         parts: list[str] = commandLine.split(' ')
         if parts[0] == Configuration_2_1_0.Command.ChirpCfg.Command: 
           _ = parts.pop(0)
@@ -378,7 +454,12 @@ class Configuration_2_1_0:
             self.adcStartTimeVariation = float(parts.pop(0))
             self.txAntennaEnableMask = int(parts.pop(0))
       @property
-      def commandLine(self):
+      def commandLine(self) -> str:
+        """Convert command data to command line string
+
+        Returns:
+          str: command line string
+        """
         return Configuration_2_1_0.Command.ChirpCfg.Format.format(
           Command = Configuration_2_1_0.Command.ChirpCfg.Command, 
           chirpStartIndex = str(self.chirpStartIndex) if self.chirpStartIndex != None else "", 
@@ -425,7 +506,12 @@ class Configuration_2_1_0:
         #   BPM disabled:
         #     If BPM is disabled, a BPM disable command (set phase to zero on both TX antennas) will be issued for the chirps in the range [chirp 0Idx..chirp1Idx].
         self.chirp1Idx = None
-      def parse(self, commandLine: str):
+      def parse(self, commandLine: str) -> None:
+        """parse command line
+
+        Args:
+          commandLine (str): one line of command (a command)
+        """
         parts: list[str] = commandLine.split(' ')
         if parts[0] == Configuration_2_1_0.Command.BpmCfg.Command: 
           _ = parts.pop(0)
@@ -436,7 +522,12 @@ class Configuration_2_1_0:
             self.chirp0Idx = int(parts.pop(0))
             self.chirp1Idx = int(parts.pop(0))
       @property
-      def commandLine(self):
+      def commandLine(self) -> str:
+        """Convert command data to command line string
+
+        Returns:
+          str: command line string
+        """
         return Configuration_2_1_0.Command.BpmCfg.Format.format(
           Command = Configuration_2_1_0.Command.BpmCfg.Command, 
           subFrameIdx = str(self.subFrameIdx) if self.subFrameIdx != None else "", 
@@ -461,7 +552,12 @@ class Configuration_2_1_0:
         #   0x00 : Regular ADC mode
         #   0x01 : Low power ADC mode
         self.adcMode = None
-      def parse(self, commandLine: str):
+      def parse(self, commandLine: str) -> None:
+        """parse command line
+
+        Args:
+          commandLine (str): one line of command (a command)
+        """
         parts: list[str] = commandLine.split(' ')
         if parts[0] == Configuration_2_1_0.Command.LowPower.Command: 
           _ = parts.pop(0)
@@ -469,7 +565,12 @@ class Configuration_2_1_0:
             self.dontCare = int(parts.pop(0))
             self.adcMode = int(parts.pop(0))
       @property
-      def commandLine(self):
+      def commandLine(self) -> str:
+        """Convert command data to command line string
+
+        Returns:
+          str: command line string
+        """
         return Configuration_2_1_0.Command.LowPower.Format.format(
           Command = Configuration_2_1_0.Command.LowPower.Command, 
           dontCare = str(self.dontCare) if self.dontCare != None else "", 
@@ -502,7 +603,12 @@ class Configuration_2_1_0:
         self.triggerSelect = None
         # Frame trigger delay in ms (float values allowed)
         self.frameTriggerDelay = None
-      def parse(self, commandLine: str):
+      def parse(self, commandLine: str) -> None:
+        """parse command line
+
+        Args:
+          commandLine (str): one line of command (a command)
+        """
         parts: list[str] = commandLine.split(' ')
         if parts[0] == Configuration_2_1_0.Command.FrameCfg.Command: 
           _ = parts.pop(0)
@@ -515,7 +621,12 @@ class Configuration_2_1_0:
             self.triggerSelect = int(parts.pop(0))
             self.frameTriggerDelay = float(parts.pop(0))
       @property
-      def commandLine(self):
+      def commandLine(self) -> str:
+        """Convert command data to command line string
+
+        Returns:
+          str: command line string
+        """
         return Configuration_2_1_0.Command.FrameCfg.Format.format(
           Command = Configuration_2_1_0.Command.FrameCfg.Command, 
           chirpStartIndex = str(self.chirpStartIndex) if self.chirpStartIndex != None else "", 
@@ -555,7 +666,12 @@ class Configuration_2_1_0:
         # <frameTrigDelay>
         #   Frame trigger delay in ms (float values allowed)
         self.frameTrigDelay = None
-      def parse(self, commandLine: str):
+      def parse(self, commandLine: str) -> None:
+        """parse command line
+
+        Args:
+          commandLine (str): one line of command (a command)
+        """
         parts: list[str] = commandLine.split(' ')
         if parts[0] == Configuration_2_1_0.Command.AdvFrameCfg.Command: 
           _ = parts.pop(0)
@@ -566,7 +682,12 @@ class Configuration_2_1_0:
             self.triggerSelect = int(parts.pop(0))
             self.frameTrigDelay = float(parts.pop(0))
       @property
-      def commandLine(self):
+      def commandLine(self) -> str:
+        """Convert command data to command line string
+
+        Returns:
+          str: command line string
+        """
         return Configuration_2_1_0.Command.AdvFrameCfg.Format.format(
           Command = Configuration_2_1_0.Command.AdvFrameCfg.Command, 
           numOfSubFrames = str(self.numOfSubFrames) if self.numOfSubFrames != None else "", 
@@ -618,7 +739,12 @@ class Configuration_2_1_0:
         #   subFrame periodicty in msec (float values allowed) and meets the criteria
         #   subFramePeriodicity >= Sum total time of all bursts + InterSubFrameBlankTime
         self.subFramePeriodicity = None
-      def parse(self, commandLine: str):
+      def parse(self, commandLine: str) -> None:
+        """parse command line
+
+        Args:
+          commandLine (str): one line of command (a command)
+        """
         parts: list[str] = commandLine.split(' ')
         if parts[0] == Configuration_2_1_0.Command.SubFrameCfg.Command: 
           _ = parts.pop(0)
@@ -634,7 +760,12 @@ class Configuration_2_1_0:
             self.numOfBurstLoops = int(parts.pop(0))
             self.subFramePeriodicity = float(parts.pop(0))
       @property
-      def commandLine(self):
+      def commandLine(self) -> str:
+        """Convert command data to command line string
+
+        Returns:
+          str: command line string
+        """
         return Configuration_2_1_0.Command.SubFrameCfg.Format.format(
           Command = Configuration_2_1_0.Command.SubFrameCfg.Command, 
           subFrameNum = str(self.subFrameNum) if self.subFrameNum != None else "", 
@@ -687,7 +818,12 @@ class Configuration_2_1_0:
         #     1 - enable export of stats data.
         #     0 - disable
         self.statsInfo = None
-      def parse(self, commandLine: str):
+      def parse(self, commandLine: str) -> None:
+        """parse command line
+
+        Args:
+          commandLine (str): one line of command (a command)
+        """
         parts: list[str] = commandLine.split(' ')
         if parts[0] == Configuration_2_1_0.Command.GuiMonitor.Command: 
           _ = parts.pop(0)
@@ -701,7 +837,12 @@ class Configuration_2_1_0:
             self.rangeDopplerHeatMap = int(parts.pop(0))
             self.statsInfo = int(parts.pop(0))
       @property
-      def commandLine(self):
+      def commandLine(self) -> str:
+        """Convert command data to command line string
+
+        Returns:
+          str: command line string
+        """
         return Configuration_2_1_0.Command.GuiMonitor.Format.format(
           Command = Configuration_2_1_0.Command.GuiMonitor.Command, 
           subFrameIdx = str(self.subFrameIdx) if self.subFrameIdx != None else "", 
@@ -758,7 +899,12 @@ class Configuration_2_1_0:
         #   the CUT comparison for log input is:
         #   CUT > Threshold scale + (noise sum / 2^x)
         self.ThresholdScale = None
-      def parse(self, commandLine: str):
+      def parse(self, commandLine: str) -> None:
+        """parse command line
+
+        Args:
+          commandLine (str): one line of command (a command)
+        """
         parts: list[str] = commandLine.split(' ')
         if parts[0] == Configuration_2_1_0.Command.CfarCfg.Command: 
           _ = parts.pop(0)
@@ -773,7 +919,12 @@ class Configuration_2_1_0:
             self.cyclicModeOrWrappedAroundMode = int(parts.pop(0))
             self.ThresholdScale = int(parts.pop(0))
       @property
-      def commandLine(self):
+      def commandLine(self) -> str:
+        """Convert command data to command line string
+
+        Returns:
+          str: command line string
+        """
         return Configuration_2_1_0.Command.CfarCfg.Format.format(
           Command = Configuration_2_1_0.Command.CfarCfg.Command, 
           subFrameIdx = str(self.subFrameIdx) if self.subFrameIdx != None else "", 
@@ -823,7 +974,12 @@ class Configuration_2_1_0:
         #   Maximum range index of detected object that should be sent out.
         #   Ex: Value of (Range FFT size -1) means skip last bin and stop peak grouping at (Range FFT size -1)
         self.endRangeIndex = None
-      def parse(self, commandLine: str):
+      def parse(self, commandLine: str) -> None:
+        """parse command line
+
+        Args:
+          commandLine (str): one line of command (a command)
+        """
         parts: list[str] = commandLine.split(' ')
         if parts[0] == Configuration_2_1_0.Command.PeakGrouping.Command: 
           _ = parts.pop(0)
@@ -836,7 +992,12 @@ class Configuration_2_1_0:
             self.startRangeIndex = int(parts.pop(0))
             self.endRangeIndex = int(parts.pop(0))
       @property
-      def commandLine(self):
+      def commandLine(self) -> str:
+        """Convert command data to command line string
+
+        Returns:
+          str: command line string
+        """
         return Configuration_2_1_0.Command.PeakGrouping.Format.format(
           Command = Configuration_2_1_0.Command.PeakGrouping.Command, 
           subFrameIdx = str(self.subFrameIdx) if self.subFrameIdx != None else "", 
@@ -871,7 +1032,12 @@ class Configuration_2_1_0:
         #   Detection threshold is equal to <thresholdScale> multiplied by the first peak height.
         #   Note that FFT output is magnitude squared.
         self.threshold = None
-      def parse(self, commandLine: str):
+      def parse(self, commandLine: str) -> None:
+        """parse command line
+
+        Args:
+          commandLine (str): one line of command (a command)
+        """
         parts: list[str] = commandLine.split(' ')
         if parts[0] == Configuration_2_1_0.Command.MultiObjBeamForming.Command: 
           _ = parts.pop(0)
@@ -881,7 +1047,12 @@ class Configuration_2_1_0:
             self.featureEnabled = int(parts.pop(0))
             self.threshold = float(parts.pop(0))
       @property
-      def commandLine(self):
+      def commandLine(self) -> str:
+        """Convert command data to command line string
+
+        Returns:
+          str: command line string
+        """
         return Configuration_2_1_0.Command.MultiObjBeamForming.Format.format(
           Command = Configuration_2_1_0.Command.MultiObjBeamForming.Command, 
           subFrameIdx = str(self.subFrameIdx) if self.subFrameIdx != None else "", 
@@ -929,7 +1100,12 @@ class Configuration_2_1_0:
         #   Value of 256 means first 256 chirps (after command is issued and feature is enabled) will be used for collecting (averaging) DC signature in the bins specified above.
         #   From 257th chirp, the collected DC signature will be removed from every chirp.
         self.numAvg = None
-      def parse(self, commandLine: str):
+      def parse(self, commandLine: str) -> None:
+        """parse command line
+
+        Args:
+          commandLine (str): one line of command (a command)
+        """
         parts: list[str] = commandLine.split(' ')
         if parts[0] == Configuration_2_1_0.Command.CalibDcRangeSig.Command: 
           _ = parts.pop(0)
@@ -941,7 +1117,12 @@ class Configuration_2_1_0:
             self.positiveBinIdx = int(parts.pop(0))
             self.numAvg = int(parts.pop(0))
       @property
-      def commandLine(self):
+      def commandLine(self) -> str:
+        """Convert command data to command line string
+
+        Returns:
+          str: command line string
+        """
         return Configuration_2_1_0.Command.CalibDcRangeSig.Format.format(
           Command = Configuration_2_1_0.Command.CalibDcRangeSig.Command, 
           subFrameIdx = str(self.subFrameIdx) if self.subFrameIdx != None else "", 
@@ -971,7 +1152,12 @@ class Configuration_2_1_0:
         #     0 - disabled
         #     1 - enabled
         self.enabled = None
-      def parse(self, commandLine: str):
+      def parse(self, commandLine: str) -> None:
+        """parse command line
+
+        Args:
+          commandLine (str): one line of command (a command)
+        """
         parts: list[str] = commandLine.split(' ')
         if parts[0] == Configuration_2_1_0.Command.ExtendedMaxVelocity.Command: 
           _ = parts.pop(0)
@@ -980,7 +1166,12 @@ class Configuration_2_1_0:
           if len(parts) == 1:
             self.enabled = int(parts.pop(0))
       @property
-      def commandLine(self):
+      def commandLine(self) -> str:
+        """Convert command data to command line string
+
+        Returns:
+          str: command line string
+        """
         return Configuration_2_1_0.Command.ExtendedMaxVelocity.Format.format(
           Command = Configuration_2_1_0.Command.ExtendedMaxVelocity.Command, 
           subFrameIdx = str(self.subFrameIdx) if self.subFrameIdx != None else "", 
@@ -1001,14 +1192,24 @@ class Configuration_2_1_0:
         #     0 - disabled
         #     1 - enabled
         self.enabled = None
-      def parse(self, commandLine: str):
+      def parse(self, commandLine: str) -> None:
+        """parse command line
+
+        Args:
+          commandLine (str): one line of command (a command)
+        """
         parts: list[str] = commandLine.split(' ')
         if parts[0] == Configuration_2_1_0.Command.ClutterRemoval.Command: 
           _ = parts.pop(0)
           if len(parts) == 1:
             self.enabled = int(parts.pop(0))
       @property
-      def commandLine(self):
+      def commandLine(self) -> str:
+        """Convert command data to command line string
+
+        Returns:
+          str: command line string
+        """
         return Configuration_2_1_0.Command.ClutterRemoval.Format.format(
           Command = Configuration_2_1_0.Command.ClutterRemoval.Command, 
           enabled = str(self.enabled) if self.enabled != None else ""
@@ -1029,7 +1230,12 @@ class Configuration_2_1_0:
         #   Set of Complex value representing compensation for virtual Rx channel phase bias in Q15 format.
         #   Pairs of I and Q should be provided for all Tx and Rx antennas in the device
         self.setOfComplexValue = None
-      def parse(self, commandLine: str):
+      def parse(self, commandLine: str) -> None:
+        """parse command line
+
+        Args:
+          commandLine (str): one line of command (a command)
+        """
         parts: list[str] = commandLine.split(' ')
         if parts[0] == Configuration_2_1_0.Command.CompRangeBiasAndRxChanPhase.Command: 
           _ = parts.pop(0)
@@ -1037,7 +1243,12 @@ class Configuration_2_1_0:
             self.rangeBias = float(parts.pop(0))
             self.setOfComplexValue = [int(value) for value in parts] # length == config.numVirtualAntennas
       @property
-      def commandLine(self):
+      def commandLine(self) -> str:
+        """Convert command data to command line string
+
+        Returns:
+          str: command line string
+        """
         return Configuration_2_1_0.Command.CompRangeBiasAndRxChanPhase.Format.format(
           Command = Configuration_2_1_0.Command.CompRangeBiasAndRxChanPhase.Command, 
           rangeBias = str(self.rangeBias) if self.rangeBias != None else "", 
@@ -1065,7 +1276,12 @@ class Configuration_2_1_0:
         # <searchWin>
         #   distance in meters of the search window around <targetDistance> where the peak will be searched
         self.searchWin = None
-      def parse(self, commandLine: str):
+      def parse(self, commandLine: str) -> None:
+        """parse command line
+
+        Args:
+          commandLine (str): one line of command (a command)
+        """
         parts: list[str] = commandLine.split(' ')
         if parts[0] == Configuration_2_1_0.Command.MeasureRangeBiasAndRxChanPhase.Command: 
           _ = parts.pop(0)
@@ -1074,7 +1290,12 @@ class Configuration_2_1_0:
             self.targetDistance = float(parts.pop(0))
             self.searchWin = float(parts.pop(0))
       @property
-      def commandLine(self):
+      def commandLine(self) -> str:
+        """Convert command data to command line string
+
+        Returns:
+          str: command line string
+        """
         return Configuration_2_1_0.Command.MeasureRangeBiasAndRxChanPhase.Format.format(
           Command = Configuration_2_1_0.Command.MeasureRangeBiasAndRxChanPhase.Command, 
           enabled = str(self.enabled) if self.enabled != None else "", 
@@ -1105,7 +1326,12 @@ class Configuration_2_1_0:
         # <endRangeIndex>
         #   This is the last range bin index beyond which the algorithm would stop correcting.
         self.endRangeIndex = None
-      def parse(self, commandLine: str):
+      def parse(self, commandLine: str) -> None:
+        """parse command line
+
+        Args:
+          commandLine (str): one line of command (a command)
+        """
         parts: list[str] = commandLine.split(' ')
         if parts[0] == Configuration_2_1_0.Command.NearFieldCfg.Command: 
           _ = parts.pop(0)
@@ -1116,7 +1342,12 @@ class Configuration_2_1_0:
             self.startRangeIndex = int(parts.pop(0))
             self.endRangeIndex = int(parts.pop(0))
       @property
-      def commandLine(self):
+      def commandLine(self) -> str:
+        """Convert command data to command line string
+
+        Returns:
+          str: command line string
+        """
         return Configuration_2_1_0.Command.NearFieldCfg.Format.format(
           Command = Configuration_2_1_0.Command.NearFieldCfg.Command, 
           subFrameIdx = str(self.subFrameIdx) if self.subFrameIdx != None else "", 
@@ -1149,7 +1380,12 @@ class Configuration_2_1_0:
         # <rxChanMask>
         #   RX channgel mask, 1 - Mask, 0 - unmask
         self.rxChanMask = None
-      def parse(self, commandLine: str):
+      def parse(self, commandLine: str) -> None:
+        """parse command line
+
+        Args:
+          commandLine (str): one line of command (a command)
+        """
         parts: list[str] = commandLine.split(' ')
         if parts[0] == Configuration_2_1_0.Command.CQRxSatMonitor.Command: 
           _ = parts.pop(0)
@@ -1160,7 +1396,12 @@ class Configuration_2_1_0:
             self.numSlices = int(parts.pop(0))
             self.rxChanMask = int(parts.pop(0))
       @property
-      def commandLine(self):
+      def commandLine(self) -> str:
+        """Convert command data to command line string
+
+        Returns:
+          str: command line string
+        """
         return Configuration_2_1_0.Command.CQRxSatMonitor.Format.format(
           Command = Configuration_2_1_0.Command.CQRxSatMonitor.Command, 
           profile = str(self.profile) if self.profile != None else "", 
@@ -1190,7 +1431,12 @@ class Configuration_2_1_0:
         #   Possible range is 4 to "number of ADC samples" in the corresponding profileCfg.
         #   It must be an even number.
         self.numSamplePerSlice = None
-      def parse(self, commandLine: str):
+      def parse(self, commandLine: str) -> None:
+        """parse command line
+
+        Args:
+          commandLine (str): one line of command (a command)
+        """
         parts: list[str] = commandLine.split(' ')
         if parts[0] == Configuration_2_1_0.Command.CQSigImgMonitor.Command: 
           _ = parts.pop(0)
@@ -1199,7 +1445,12 @@ class Configuration_2_1_0:
             self.numSlices = int(parts.pop(0))
             self.numSamplePerSlice = int(parts.pop(0))
       @property
-      def commandLine(self):
+      def commandLine(self) -> str:
+        """Convert command data to command line string
+
+        Returns:
+          str: command line string
+        """
         return Configuration_2_1_0.Command.CQSigImgMonitor.Format.format(
           Command = Configuration_2_1_0.Command.CQSigImgMonitor.Command, 
           profile = str(self.profile) if self.profile != None else "", 
@@ -1223,7 +1474,12 @@ class Configuration_2_1_0:
         #     1:enable
         #     0: disable
         self.sigImgBand = None
-      def parse(self, commandLine: str):
+      def parse(self, commandLine: str) -> None:
+        """parse command line
+
+        Args:
+          commandLine (str): one line of command (a command)
+        """
         parts: list[str] = commandLine.split(' ')
         if parts[0] == Configuration_2_1_0.Command.AnalogMonitor.Command: 
           _ = parts.pop(0)
@@ -1231,7 +1487,12 @@ class Configuration_2_1_0:
             self.rxSaturation = int(parts.pop(0))
             self.sigImgBand = int(parts.pop(0))
       @property
-      def commandLine(self):
+      def commandLine(self) -> str:
+        """Convert command data to command line string
+
+        Returns:
+          str: command line string
+        """
         return Configuration_2_1_0.Command.AnalogMonitor.Format.format(
           Command = Configuration_2_1_0.Command.AnalogMonitor.Command, 
           rxSaturation = str(self.rxSaturation) if self.rxSaturation != None else "", 
@@ -1264,7 +1525,12 @@ class Configuration_2_1_0:
         #   0 - Disable user data (SW session)
         #   1 - Enable user data
         self.enableSW = None
-      def parse(self, commandLine: str):
+      def parse(self, commandLine: str) -> None:
+        """parse command line
+
+        Args:
+          commandLine (str): one line of command (a command)
+        """
         parts: list[str] = commandLine.split(' ')
         if parts[0] == Configuration_2_1_0.Command.LvdsStreamCfg.Command: 
           _ = parts.pop(0)
@@ -1275,7 +1541,12 @@ class Configuration_2_1_0:
             self.dataFmt = int(parts.pop(0))
             self.enableSW = int(parts.pop(0))
       @property
-      def commandLine(self):
+      def commandLine(self) -> str:
+        """Convert command data to command line string
+
+        Returns:
+          str: command line string
+        """
         return Configuration_2_1_0.Command.LvdsStreamCfg.Format.format(
           Command = Configuration_2_1_0.Command.LvdsStreamCfg.Command, 
           subFrameIdx = str(self.subFrameIdx) if self.subFrameIdx != None else "", 
@@ -1296,17 +1567,29 @@ class Configuration_2_1_0:
       Format= "{Command}"
       def __init__(self):
         pass
-      def parse(self, commandLine: str):
+      def parse(self, commandLine: str) -> None:
+        """parse command line
+
+        Args:
+          commandLine (str): one line of command (a command)
+        """
         parts: list[str] = commandLine.split(' ')
         if parts[0] == Configuration_2_1_0.Command.SensorStop.Command: 
           _ = parts.pop(0)
       @property
-      def commandLine(self):
+      def commandLine(self) -> str:
+        """Convert command data to command line string
+
+        Returns:
+          str: command line string
+        """
         return Configuration_2_1_0.Command.SensorStop.Format.format(
           Command = Configuration_2_1_0.Command.SensorStop.Command
         )
 
-    def __init__(self):
+    def __init__(self): # TODO: add self.platform to control supported commands
+      """Initialize all command
+      """
       self.sensorStart                    = Configuration_2_1_0.Command.SensorStart()
       self.flushCfg                       = Configuration_2_1_0.Command.FlushCfg()
       self.dfeDataOutputMode              = Configuration_2_1_0.Command.DfeDataOutputMode()
@@ -1335,7 +1618,12 @@ class Configuration_2_1_0:
       self.lvdsStreamCfg                  = Configuration_2_1_0.Command.LvdsStreamCfg()
       self.sensorStop                     = Configuration_2_1_0.Command.SensorStop()
       self.chirpCfg_list: list[Configuration_2_1_0.Command.ChirpCfg] = list()
-    def parse(self, commandLine: str):
+    def parse(self, commandLine: str) -> None:
+      """parse command line
+
+      Args:
+        commandLine (str): one line of command (a command)
+      """
       commandLine = commandLine.strip()
       if commandLine.startswith("sensorStart"): self.sensorStart.parse(commandLine)
       if commandLine.startswith("flushCfg"): self.flushCfg.parse(commandLine)
@@ -1380,6 +1668,11 @@ class Configuration_2_1_0:
         pass
       pass
     def commandLines(self, sensorStop: bool = False, sensorStart: bool = False):
+      """Convert command data to command line string
+
+      Returns:
+        str: command line string
+      """
       commandLines: list[str] = []
       if sensorStop: commandLines.append(self.sensorStop.commandLine)
       commandLines.append(self.flushCfg.commandLine)
@@ -1417,9 +1710,11 @@ class Configuration_2_1_0:
   # commandParameters_backup = dict()
 
   class Parameter:
+    """Device configuration parameters
     """
-    """
-    def __init__(self) -> None:
+    def __init__(self) -> None: # TODO: add self.platform
+      """Initialize all parameters
+      """
       self.numRxAnt = None 
       self.numTxAnt = None 
       self.numVirtualAntennas = None 
@@ -1434,12 +1729,30 @@ class Configuration_2_1_0:
       self.thresholdScaleDb = None 
       self.logger = Log.Logger(fileName="Log/Configuration_2_1_0.log")
 
-    def parse(self, platform, command, verificationLevel: str="Error"): # Todo: trans to use `setter` and `getter`
+    def parse(self, platform: str, command, verificationLevel: str="Error") -> None: # TODO: trans to use `setter` and `getter`
+      """Parse the command to get the configured parameters
+
+      Args:
+        platform (str): Platform type, only accepts "xWR14xx" and "xWR16xx"
+        command (Configuration_2_1_0.Command): Command object to parse
+        verificationLevel (str, optional): logging level when parsing. Defaults to "Error".
+
+      Returns:
+        None
+      """
       command: Configuration_2_1_0.Command = command
-      def decode_mask(mask: int) -> int:
+      def CalcMasks(masks: int) -> int:
+        """Calculate the number of masks
+
+        Args:
+          masks (int): Calculated masks
+
+        Returns:
+          int: num of masks
+        """
         value = 0
-        while mask :
-          mask >>= 1
+        while masks :
+          masks >>= 1
           value += 1
         return value
 
@@ -1447,8 +1760,8 @@ class Configuration_2_1_0:
 
       if not Missing_Command: 
         try:
-          self.numRxAnt = decode_mask(mask=int(command.channelCfg.rxChannelEn))
-          self.numTxAnt = decode_mask(mask=int(command.channelCfg.txChannelEn))
+          self.numRxAnt = CalcMasks(int(command.channelCfg.rxChannelEn))
+          self.numTxAnt = CalcMasks(int(command.channelCfg.txChannelEn))
           self.numVirtualAntennas = self.numRxAnt * self.numTxAnt
         except TypeError:
           Missing_Command = True
@@ -1501,19 +1814,34 @@ class Configuration_2_1_0:
         self.logger.log(event="Configuration_2_1_0.Parameter.parse", level="information", message="parse configParameters success")
 
   def __init__(self, platform: str) -> None:
+    """Initialize configuration data
+
+    Args:
+      platform (str): Platform type, only accepts "xWR14xx" and "xWR16xx"
+    """
     self.platform: str = platform
     self.command: Configuration_2_1_0.Command = Configuration_2_1_0.Command()
     self.parameter: Configuration_2_1_0.Parameter = Configuration_2_1_0.Parameter() 
     self.logger = Log.Logger(fileName="Log/Configuration_2_1_0.log")
 
-  def parse_commandLine(self, commandLine: str):
+  def parse_commandLine(self, commandLine: str) -> None:
+    """parse command line
+
+    Args:
+      commandLine (str): one line of command (a command)
+    """
     commandLine = commandLine.strip()
     parts: list[str] = commandLine.split(" ")
     self.command.parse(commandLine)
     if parts[0] == "sensorStart" or parts[0] == "channelCfg" or parts[0] == "profileCfg" or parts[0] == "frameCfg" or parts[0] == "cfarCfg":
       self.parameter.parse(self.platform, self.command)
 
-  def set_CfarRangeThreshold_dB(self, threshold_dB: int|float):
+  def set_CfarRangeThreshold_dB(self, threshold_dB: int|float) -> None:
+    """Set cfar range threshold dB value
+
+    Args:
+      threshold_dB (int | float): filter threshold
+    """
     if threshold_dB<0 or threshold_dB>100: 
       return
     else: 
@@ -1523,12 +1851,22 @@ class Configuration_2_1_0:
       if self.platform == "xWR16xx":
         self.command.cfarCfg.ThresholdScale = (threshold_dB * 256 * self.parameter.numVirtualAntennas) // 6
 
-  def set_RemoveStaticClutter(self, enabled: bool):
+  def set_RemoveStaticClutter(self, enabled: bool) -> None:
+    """set enable/disable Remove Static Clutter
+
+    Args:
+      enabled (bool): set True to enable Remove Static Clutter
+    """
     self.command.clutterRemoval.enabled = int(enabled)
 
-  def set_FramePeriodicity(self, milliseconds: int|float):
-    self.command.frameCfg.framePeriodicity = milliseconds
-    self.parameter.framePeriodicity = milliseconds
+  def set_FramePeriodicity(self, FramePeriodicity_ms: int|float) -> None:
+    """set Frame Periodicity(ms)
+
+    Args:
+        FramePeriodicity_ms (int | float): Frame Periodicity (ms)
+    """
+    self.command.frameCfg.framePeriodicity = FramePeriodicity_ms
+    self.parameter.framePeriodicity = FramePeriodicity_ms
 
 # %%
 if __name__ == '__main__':

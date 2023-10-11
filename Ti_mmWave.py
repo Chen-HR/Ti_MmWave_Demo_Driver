@@ -106,12 +106,29 @@ class Ti_mmWave:
       CFG_lines: list[str] = [CFG_line.strip() for CFG_line in CFG_file.readlines()]
       self.configure(commandLines=CFG_lines, wait=wait, log=log)
 
-  def sensorStop(self, wait: float | int = 0.05, log: bool = False):
+  def sensorStop(self, wait: float | int = 0.05, log: bool = False) -> None:
+    """Use the command line to control the Sensor to stops sensing.
+
+    Args:
+      wait (float | int, optional): Configured wait delay. Defaults to 0.05.
+      log (bool, optional): log configuration instructions. Defaults to False.
+    """
     self.configure_unit(commandLine="sensorStop", wait=wait, log=log)
-  def sensorStart(self, wait: float | int = 0.05, log: bool = False):
+  def sensorStart(self, wait: float | int = 0.05, log: bool = False) -> None:
+    """Use the command line to control the Sensor to start sensing.
+
+    Args:
+      wait (float | int, optional): Configured wait delay. Defaults to 0.05.
+      log (bool, optional): log configuration instructions. Defaults to False.
+    """
     self.configure_unit(commandLine="sensorStart", wait=wait, log=log)
 
-  def record_DataPort(self, record_file_name: str="Record/Data.bin"):
+  def record_DataPort(self, record_file_name: str="Record/Data.bin") -> None:
+    """Record sensing data to file
+
+    Args:
+        record_file_name (str, optional): File name. Defaults to "Record/Data.bin".
+    """
     while self.Data_port_Reading: pass # wait for dataport reading
     else: 
       self.Data_port_Reading = True
@@ -124,7 +141,14 @@ class Ti_mmWave:
         pass
       self.Data_port_Reading = False
 
-  def parse_DataPort(self, log: bool=False):
+  def parse_DataPort(self, log: bool=False) -> None:
+    """Parse sensed data.
+
+    Experimental product, has been moved to `self.parseData()`.
+
+    Args:
+      log (bool, optional): logging parsing process. Defaults to False.
+    """
     self.buffer += bytearray(self.Data_port.read(self.Data_port.in_waiting))
     buffer_uint8: numpy.NDArray[numpy.uint8] = numpy.frombuffer(buffer=self.buffer, dtype=numpy.uint8)
     BASE_NUMBER_OF_BITS = 8
@@ -185,7 +209,7 @@ class Ti_mmWave:
         self.data.detectedObjects.infomation.numDetetedObj, index = uint8_2_uint16(buffer_uint8, index)
         self.data.detectedObjects.infomation.xyzQFormat   , index = uint8_2_uint16(buffer_uint8, index)
         if log:
-          self.logger.log(event="{}.updateData".format(self.__str__()), level="logging", message="self.data.detectedObjects.infomation.numDetetedObj: {}".format(self.data.detectedObjects.infomation.numDetetedObj)) # Todo: check this with `self.data.numDetectedObj`
+          self.logger.log(event="{}.updateData".format(self.__str__()), level="logging", message="self.data.detectedObjects.infomation.numDetetedObj: {}".format(self.data.detectedObjects.infomation.numDetetedObj)) # TODO: check this with `self.data.numDetectedObj`
           self.logger.log(event="{}.updateData".format(self.__str__()), level="logging", message="self.data.detectedObjects.infomation.xyzQFormat   : {}".format(self.data.detectedObjects.infomation.xyzQFormat   ))
         self.data.detectedObjects.Objects = []
         for DetetedObj_index in range(self.data.detectedObjects.infomation.numDetetedObj):
@@ -208,27 +232,37 @@ class Ti_mmWave:
             xQFormat=QFormat(self.data.detectedObjects.infomation.xyzQFormat, x), 
             yQFormat=QFormat(self.data.detectedObjects.infomation.xyzQFormat, y), 
             zQFormat=QFormat(self.data.detectedObjects.infomation.xyzQFormat, z)))
-        # Todo: check TLV length
+        # TODO: check TLV length
       elif TLV_TypeId == 2:
-        # Todo: parse logMagnitudeRange
+        # TODO: parse logMagnitudeRange
         pass
       elif TLV_TypeId == 3:
-        # Todo: parse noiseProfile
+        # TODO: parse noiseProfile
         pass
       elif TLV_TypeId == 4:
-        # Todo: parse rangeAzimuthHeatMap
+        # TODO: parse rangeAzimuthHeatMap
         pass
       elif TLV_TypeId == 5:
-        # Todo: parse rangeDopplerHeatMap
+        # TODO: parse rangeDopplerHeatMap
         pass
       elif TLV_TypeId == 6:
-        # Todo: parse statsInfo
+        # TODO: parse statsInfo
         pass
       else: self.logger.log(event="{}.updateData".format(self.__str__()), level="Error", message="Error TypeId: {}".format(TLV_TypeId))
-      # Todo: check frame length
-      # Todo: clear readed frame data from `data.buffer`
+      # TODO: check frame length
+      # TODO: clear readed frame data from `data.buffer`
 
-  def parseData(self, log: bool=False):
+  def parseData(self, log: bool=False) -> None:
+    """Parse sensed data.
+
+    Experimental product.
+
+    TODO: Continuously loading sensing data. (Use `threading.Thread` to drive `self.buffer += bytearray(self.Data_port.read(self.Data_port.in_waiting))`)
+    TODO: Continuously parse sensing data. (Use `threading.Thread` to drive `self.data.parse(dataByte=self.buffer, log=log)`)
+
+    Args:
+        log (bool, optional): _description_. Defaults to False.
+    """
     self.buffer += bytearray(self.Data_port.read(self.Data_port.in_waiting))
     self.data.parse(dataByte=self.buffer, log=log)
 
@@ -242,7 +276,7 @@ if __name__ == '__main__':
   device.sensorStop(log=True)
   device.config.set_CfarRangeThreshold_dB(threshold_dB=5)
   device.config.set_RemoveStaticClutter(enabled=True)
-  device.config.set_FramePeriodicity(milliseconds=4000)
+  device.config.set_FramePeriodicity(FramePeriodicity_ms=2000)
   device.configure(log=True)
   device.sensorStart(log=True)
   print("sensorStart")
