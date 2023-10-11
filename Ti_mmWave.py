@@ -228,6 +228,10 @@ class Ti_mmWave:
       # Todo: check frame length
       # Todo: clear readed frame data from `data.buffer`
 
+  def parseData(self, log: bool=False):
+    self.buffer += bytearray(self.Data_port.read(self.Data_port.in_waiting))
+    self.data.parse(dataByte=self.buffer, log=log)
+
 
 # %%
 if __name__ == '__main__':
@@ -238,7 +242,7 @@ if __name__ == '__main__':
   device.sensorStop(log=True)
   device.config.set_CfarRangeThreshold_dB(threshold_dB=5)
   device.config.set_RemoveStaticClutter(enabled=True)
-  device.config.set_FramePeriodicity(milliseconds=1500)
+  device.config.set_FramePeriodicity(milliseconds=4000)
   device.configure(log=True)
   device.sensorStart(log=True)
   print("sensorStart")
@@ -246,7 +250,8 @@ if __name__ == '__main__':
   # print("record_DataPort")
   # device.record_DataPort()
   time.sleep(device.config.parameter.framePeriodicity/1000)
-  device.parse_DataPort(log=True)
+  # device.parse_DataPort(log=True)
+  device.parseData(log=True)
   device.sensorStop(log=True)
   del device
 # %%
