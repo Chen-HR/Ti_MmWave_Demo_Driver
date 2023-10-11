@@ -270,6 +270,9 @@ class Ti_mmWave:
 # %%
 if __name__ == '__main__':
   device = Ti_mmWave(platform="xWR14xx", Ctrl_port_name="COM3", Data_port_name="COM4", Ctrl_port_baudrate=115200, Data_port_baudrate=921600)
+  device.logger.echo = True
+  device.config.logger.echo = True
+  device.data.logger.echo = True
   print("configured device...")
   device.configure_file(CFG_file_name="Profile\profile.cfg", log=True)
   device.sensorStart(log=True)

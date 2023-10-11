@@ -145,8 +145,8 @@ class DataFrame:
     """
     # checke dataByte parse range
     BASE_NUMBER_OF_BITS = 8
-    dataByte_uint8: numpy.NDArray[numpy.uint8] = numpy.frombuffer(buffer=dataByte, dtype=numpy.uint8) # Check: `dtype` need to reference from `BASE_NUMBER_OF_BITS`
-    print("dataByte.length = " + str(len(dataByte_uint8)))
+    dataByte_uint8: numpy.NDArray[numpy.uint8] = numpy.frombuffer(buffer=dataByte, dtype=numpy.uint8) # Checke `dtype` need to reference from `BASE_NUMBER_OF_BITS`
+    # print("dataByte.length = " + str(len(dataByte_uint8)))
     index: int | None = None
     # find the location of magicBytes
     for startIndex_checker in numpy.where(dataByte_uint8 == DataFrame.magicBytes[0])[0]:
@@ -160,7 +160,7 @@ class DataFrame:
     # print("dataByte: {}".format(dataByte[index:index+len(DataFrame.magicBytes)]))
     # print("dataByte_uint8: {}".format(dataByte_uint8[index:index+len(DataFrame.magicBytes)]))
 
-    print("index: {}/{}".format(index, len(dataByte_uint8)))
+    # print("index: {}/{}".format(index, len(dataByte_uint8)))
     # skip the magicBytes
     index += len(DataFrame.magicBytes)
     # read DataFrame header
@@ -221,7 +221,7 @@ class DataFrame:
             yQFormat=Converter.QFormat.parse(self.detectedObjects.infomation.xyzQFormat, y), 
             zQFormat=Converter.QFormat.parse(self.detectedObjects.infomation.xyzQFormat, z)))
         # TODO: check TLV length
-        print("index: {}/{}".format(index, len(dataByte_uint8)))
+        # print("index: {}/{}".format(index, len(dataByte_uint8)))
       # TLV: logMagRange
       elif TLV_TypeId == 2:
         self.logMagRange.logMagRange = list()
@@ -230,7 +230,7 @@ class DataFrame:
           _logMagRange, index = Converter.uint8_2_uint16(dataByte, index)
           self.logMagRange.logMagRange.append(_logMagRange)
         if log: self.logger.log(event="DataFrame.parse", level="logging", message="DataFrame.logMagRange: {}".format(self.logMagRange.logMagRange))
-        print("index: {}/{}".format(index, len(dataByte_uint8)))
+        # print("index: {}/{}".format(index, len(dataByte_uint8)))
       # TLV: noiseProfile
       elif TLV_TypeId == 3:
         self.noiseProfile.noiseProfile = list()
@@ -239,7 +239,7 @@ class DataFrame:
           _noiseProfile, index = Converter.uint8_2_uint16(dataByte, index)
           self.noiseProfile.noiseProfile.append(_noiseProfile)
         if log: self.logger.log(event="DataFrame.parse", level="logging", message="DataFrame.noiseProfile: {}".format(self.noiseProfile.noiseProfile))
-        print("index: {}/{}".format(index, len(dataByte_uint8)))
+        # print("index: {}/{}".format(index, len(dataByte_uint8)))
       # TLV: rangeAzimuthHeatMap
       elif TLV_TypeId == 4:
         self.rangeAzimuthHeatMap.rangeAzimuthHeatMap = list()
@@ -260,7 +260,7 @@ class DataFrame:
             real, index = Converter.uint8_2_int16(dataByte, index)
             self.rangeAzimuthHeatMap.rangeAzimuthHeatMap.append(DataFrame.RangeAzimuthHeatMap.Cmplx16ImRe(imag, real))
         if log: self.logger.log(event="DataFrame.parse", level="logging", message="DataFrame.rangeAzimuthHeatMap: {}".format(str(self.rangeAzimuthHeatMap))) # TODO: fix output content
-        print("index: {}/{}".format(index, len(dataByte_uint8)))
+        # print("index: {}/{}".format(index, len(dataByte_uint8)))
       # TLV: rangeDopplerHeatMap
       elif TLV_TypeId == 5:
         self.rangeDopplerHeatMap.rangeDopplerHeatMap = list()
@@ -279,7 +279,7 @@ class DataFrame:
             _rangeDopplerHeatMap, index = Converter.uint8_2_uint16(dataByte, index)
             self.rangeDopplerHeatMap.rangeDopplerHeatMap.append(_rangeDopplerHeatMap)
         if log: self.logger.log(event="DataFrame.parse", level="logging", message="DataFrame.rangeDopplerHeatMap: {}".format(self.rangeDopplerHeatMap.rangeDopplerHeatMap))
-        print("index: {}/{}".format(index, len(dataByte_uint8)))
+        # print("index: {}/{}".format(index, len(dataByte_uint8)))
       # TLV: statsInfo
       elif TLV_TypeId == 6:
         self.statsInfo.interFrameProcessingTime  , index = Converter.uint8_2_uint32(dataByte, index)
@@ -295,9 +295,9 @@ class DataFrame:
           self.logger.log(event="DataFrame.parse", level="logging", message="DataFrame.statsInfo.interChirpProcessingMargin: {}".format(self.statsInfo.interChirpProcessingMargin))
           self.logger.log(event="DataFrame.parse", level="logging", message="DataFrame.statsInfo.activeFrameCPULoad        : {}".format(self.statsInfo.activeFrameCPULoad        ))
           self.logger.log(event="DataFrame.parse", level="logging", message="DataFrame.statsInfo.interFrameCPULoad         : {}".format(self.statsInfo.interFrameCPULoad         ))
-        print("index: {}/{}".format(index, len(dataByte_uint8)))
+        # print("index: {}/{}".format(index, len(dataByte_uint8)))
       else: self.logger.log(event="DataFrame.parse", level="Error", message="Error TypeId: {}".format(TLV_TypeId))
       # TODO: check frame length
       # TODO: clear readed frame data from `data.buffer`
     
-    print("index: {}/{}".format(index, len(dataByte_uint8)))
+    # print("index: {}/{}".format(index, len(dataByte_uint8)))
