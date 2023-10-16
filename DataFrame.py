@@ -101,17 +101,16 @@ class DataFrame:
       self.activeFrameCPULoad:         numpy.uint32 | None = None
       self.interFrameCPULoad:          numpy.uint32 | None = None
 
+  magicWords: tuple[numpy.uint16] = (0x0102, 0x0304, 0x0506, 0x0708)
   magicBytes: tuple[numpy.uint8] = (0x02, 0x01, 0x04, 0x03, 0x06, 0x05, 0x08, 0x07)
-  def __init__(self, dataByte: bytearray | None = None) -> None:
-    """Initialize DataFrame
 
-    Args:
-        dataByte (bytearray | None, optional): Initialize data source. Defaults to None.
+  def __init__(self) -> None:
+    """Initialize DataFrame
     """
     self.logger = Log.Logger(fileName="Log/DataFrame.log")
 
     # header
-    self.magicWords: tuple[numpy.uint8] = (0x02, 0x01, 0x04, 0x03, 0x06, 0x05, 0x08, 0x07) # `self.magicWords` will be removed, and use `DataFrame.magicBytes` instead
+    # self.magicWords: tuple[numpy.uint8] = (0x02, 0x01, 0x04, 0x03, 0x06, 0x05, 0x08, 0x07) # `self.magicWords` will be removed, and use `DataFrame.magicBytes` instead
     self.version:         numpy.uint32 | None = None
     self.totalPacketLen:  numpy.uint32 | None = None
     self.platform:        numpy.uint32 | None = None
@@ -120,10 +119,10 @@ class DataFrame:
     self.numDetectedObj:  numpy.uint32 | None = None
     self.numTLVs:         numpy.uint32 | None = None
     self.subFrameNumber:  numpy.uint32 | None = None
-    # other arguments
-    self.numRangeBins:      numpy.uint32 | None = None
-    self.numVirtualAntAzim: numpy.uint32 | None = None
-    self.numDopplerBins:    numpy.uint32 | None = None
+    # # other arguments
+    # self.numRangeBins:      numpy.uint32 | None = None
+    # self.numVirtualAntAzim: numpy.uint32 | None = None
+    # self.numDopplerBins:    numpy.uint32 | None = None
     # data contents
     self.detectedObjects:     DataFrame.DetectedObjects     | None = DataFrame.DetectedObjects()
     self.logMagRange:         DataFrame.LogMagRange         | None = DataFrame.LogMagRange()
@@ -132,172 +131,226 @@ class DataFrame:
     self.rangeDopplerHeatMap: DataFrame.RangeDopplerHeatMap | None = DataFrame.RangeDopplerHeatMap()
     self.statsInfo:           DataFrame.StatsInfo           | None = DataFrame.StatsInfo()
 
-    # if dataByte is not None, parse dataByte
-    if dataByte is not None:
-      self.parse(dataByte)
-
-  def parse(self, dataByte: bytearray, log: bool=False):
-    """Parse data
+  @staticmethod
+  def parse(dataByte: bytearray, log: str | None = None):
+    """Parse dataByte to get dataFrame
 
     Args:
       dataByte (bytearray): Parse data sources
       log (bool, optional): Enable logging to log. Defaults to False.
     """
+    logger = Log.Logger(log if log is not None else "Log/DataFrame.log")
+    dataFrame: DataFrame = DataFrame()
+
     # checke dataByte parse range
     BASE_NUMBER_OF_BITS = 8
     dataByte_uint8: numpy.NDArray[numpy.uint8] = numpy.frombuffer(buffer=dataByte, dtype=numpy.uint8) # Checke `dtype` need to reference from `BASE_NUMBER_OF_BITS`
     # print("dataByte.length = " + str(len(dataByte_uint8)))
     index: int | None = None
+    
     # find the location of magicBytes
-    for startIndex_checker in numpy.where(dataByte_uint8 == DataFrame.magicBytes[0])[0]:
-      if numpy.all(dataByte_uint8[startIndex_checker:startIndex_checker+len(DataFrame.magicBytes)] == numpy.array(DataFrame.magicBytes, dtype=numpy.uint8)):
+    # for startIndex_checker in numpy.where(dataByte_uint8 == DataFrame.magicBytes[0])[0]:
+    for startIndex_checker in numpy.where(dataByte == DataFrame.magicBytes[0])[0]:
+      # if numpy.all(dataByte_uint8[startIndex_checker:startIndex_checker+len(DataFrame.magicBytes)] == numpy.array(DataFrame.magicBytes, dtype=numpy.uint8)):
+      if numpy.all(dataByte[startIndex_checker:startIndex_checker+len(DataFrame.magicBytes)] == numpy.array(DataFrame.magicBytes, dtype=numpy.uint8)):
         index = startIndex_checker
         # add next line to get the first data frame, else to get the last data frame (Wrong: may be incomplete)
         break
-    # TODO: check index of frame start is correct
-    # TODO: check length of dataByte is enough (when all item of `guiMonitor` is enabled, TLV only can get first 4 items)
-    self.logger.log(event="DataFrame.parse", level="logging", message="magicBytes: {}".format(dataByte[index:index+len(DataFrame.magicBytes)]))
+
+    # check index of frame start is correct
+    if index is None: 
+      logger.log(event="DataFrame.parse", level="Error", message="DataFrame not found")
+      return
+
+    logger.log(event="DataFrame.parse", level="logging", message="magicBytes: {}".format(dataByte[index:index+len(DataFrame.magicBytes)]))
     # print("dataByte: {}".format(dataByte[index:index+len(DataFrame.magicBytes)]))
     # print("dataByte_uint8: {}".format(dataByte_uint8[index:index+len(DataFrame.magicBytes)]))
-
     # print("index: {}/{}".format(index, len(dataByte_uint8)))
+
+    # record the dataFrame length
+    length = 0
+
     # skip the magicBytes
     index += len(DataFrame.magicBytes)
+    length += len(DataFrame.magicBytes)
+
     # read DataFrame header
-    self.version         , index = Converter.uint8_2_uint32(dataByte, index)
-    self.totalPacketLen  , index = Converter.uint8_2_uint32(dataByte, index)
-    self.platform        , index = Converter.uint8_2_uint32(dataByte, index)
-    self.frameNumber     , index = Converter.uint8_2_uint32(dataByte, index)
-    self.timeCpuCycles   , index = Converter.uint8_2_uint32(dataByte, index)
-    self.numDetectedObj  , index = Converter.uint8_2_uint32(dataByte, index)
-    self.numTLVs         , index = Converter.uint8_2_uint32(dataByte, index)
-    platform: numpy.uint32 = self.platform & 0x0000ff00
+    dataFrame.version         , index = Converter.uint8_2_uint32(dataByte, index)
+    dataFrame.totalPacketLen  , index = Converter.uint8_2_uint32(dataByte, index)
+    dataFrame.platform        , index = Converter.uint8_2_uint32(dataByte, index)
+    dataFrame.frameNumber     , index = Converter.uint8_2_uint32(dataByte, index)
+    dataFrame.timeCpuCycles   , index = Converter.uint8_2_uint32(dataByte, index)
+    dataFrame.numDetectedObj  , index = Converter.uint8_2_uint32(dataByte, index)
+    dataFrame.numTLVs         , index = Converter.uint8_2_uint32(dataByte, index)
+    platform: numpy.uint32 = dataFrame.platform & 0x0000ff00
     if platform == 0x00001600:
-      self.subFrameNumber  , index = Converter.uint8_2_uint32(dataByte, index)
-    if log:
-      self.logger.log(event="DataFrame.parse", level="logging", message="DataFrame.version       : {}.{}.{}.{}".format(int((self.version&0xff000000)>>24), int((self.version&0x00ff0000)>16), int((self.version&0x0000ff00)>8), int((self.version&0x000000ff))))
-      self.logger.log(event="DataFrame.parse", level="logging", message="DataFrame.totalPacketLen: {}".format(self.totalPacketLen))
-      self.logger.log(event="DataFrame.parse", level="logging", message="DataFrame.platform      : {}".format(format(self.platform, 'x')))
-      self.logger.log(event="DataFrame.parse", level="logging", message="DataFrame.frameNumber   : {}".format(self.frameNumber   ))
-      self.logger.log(event="DataFrame.parse", level="logging", message="DataFrame.timeCpuCycles : {}".format(self.timeCpuCycles ))
-      self.logger.log(event="DataFrame.parse", level="logging", message="DataFrame.numDetectedObj: {}".format(self.numDetectedObj))
-      self.logger.log(event="DataFrame.parse", level="logging", message="DataFrame.numTLVs       : {}".format(self.numTLVs       ))
+      dataFrame.subFrameNumber  , index = Converter.uint8_2_uint32(dataByte, index)
+    if log is not None:
+      logger.log(event="DataFrame.parse", level="logging", message="DataFrame.version       : {}.{}.{}.{}".format(int((dataFrame.version&0xff000000)>>24), int((dataFrame.version&0x00ff0000)>16), int((dataFrame.version&0x0000ff00)>8), int((dataFrame.version&0x000000ff))))
+      logger.log(event="DataFrame.parse", level="logging", message="DataFrame.totalPacketLen: {}".format(dataFrame.totalPacketLen))
+      logger.log(event="DataFrame.parse", level="logging", message="DataFrame.platform      : {}".format(format(dataFrame.platform, 'x')))
+      logger.log(event="DataFrame.parse", level="logging", message="DataFrame.frameNumber   : {}".format(dataFrame.frameNumber   ))
+      logger.log(event="DataFrame.parse", level="logging", message="DataFrame.timeCpuCycles : {}".format(dataFrame.timeCpuCycles ))
+      logger.log(event="DataFrame.parse", level="logging", message="DataFrame.numDetectedObj: {}".format(dataFrame.numDetectedObj))
+      logger.log(event="DataFrame.parse", level="logging", message="DataFrame.numTLVs       : {}".format(dataFrame.numTLVs       ))
       if platform == 0x00001600:
-        self.logger.log(event="DataFrame.parse", level="logging", message="DataFrame.subFrameNumber: {}".format(self.subFrameNumber))
-    
-    self.numRangeBins:      numpy.uint32 | None = None
-    self.numVirtualAntAzim: numpy.uint32 | None = None
-    self.numDopplerBins:    numpy.uint32 | None = None
+        logger.log(event="DataFrame.parse", level="logging", message="DataFrame.subFrameNumber: {}".format(dataFrame.subFrameNumber))
+    length += 32 if platform == 0x00001600 else 28
+
+    # check length of dataByte is enough
+    # NOTE: when all item of `guiMonitor` is enabled, TLV only can get first 4 items
+    # NOTE: The built-in buffer of serial(use `pyserial-3.5`) is only about 12kB, but rangeAzimuthHeatMap and rangeDopplerHeatMap may each occupy about 8kB
+    if index + dataFrame.totalPacketLen - len(DataFrame.magicBytes) - (32 if platform == 0x00001600 else 28) < len(dataByte):
+      logger.log(event="DataFrame.parse", level="Error", message="DataFrame is incomplete")
+      return
+
+    # record contents argument
+    numRangeBins:      numpy.uint32 | None = None
+    numVirtualAntAzim: numpy.uint32 | None = None
+    numDopplerBins:    numpy.uint32 | None = None
 
     # read DataFrame contents
-    for TLV_index in range(self.numTLVs):
+    for TLV_index in range(dataFrame.numTLVs):
+
+      # read TLV header
       TLV_TypeId, index = Converter.uint8_2_uint32(dataByte, index)
       TLV_Length, index = Converter.uint8_2_uint32(dataByte, index) # bytes length of contents
-      if log:
-        self.logger.log(event="DataFrame.parse", level="logging", message="DataFrame.TLV[{}].TypeId: {}".format(TLV_index, TLV_TypeId))
-        self.logger.log(event="DataFrame.parse", level="logging", message="DataFrame.TLV[{}].Length: {}".format(TLV_index, TLV_Length))
-      # parse TLV
-      # TLV: detectedObjects
+      if log is not None:
+        logger.log(event="DataFrame.parse", level="logging", message="DataFrame.TLV[{}].TypeId: {}".format(TLV_index, TLV_TypeId))
+        logger.log(event="DataFrame.parse", level="logging", message="DataFrame.TLV[{}].Length: {}".format(TLV_index, TLV_Length))
+
+      # parse TLV: detectedObjects
       if TLV_TypeId == 1:
-        self.detectedObjects.infomation.numDetetedObj, index = Converter.uint8_2_uint16(dataByte, index)
-        self.detectedObjects.infomation.xyzQFormat   , index = Converter.uint8_2_uint16(dataByte, index)
-        if log:
-          self.logger.log(event="DataFrame.parse", level="logging", message="DataFrame.detectedObjects.infomation.numDetetedObj: {}".format(self.detectedObjects.infomation.numDetetedObj)) # TODO: check this with `self.data.numDetectedObj`
-          self.logger.log(event="DataFrame.parse", level="logging", message="DataFrame.detectedObjects.infomation.xyzQFormat   : {}".format(self.detectedObjects.infomation.xyzQFormat   ))
-        self.detectedObjects.Objects = []
-        for DetetedObj_index in range(self.detectedObjects.infomation.numDetetedObj):
+        # parse detectedObjects header
+        dataFrame.detectedObjects.infomation.numDetetedObj, index = Converter.uint8_2_uint16(dataByte, index)
+        dataFrame.detectedObjects.infomation.xyzQFormat   , index = Converter.uint8_2_uint16(dataByte, index)
+        if log is not None:
+          logger.log(event="DataFrame.parse", level="logging", message="DataFrame.detectedObjects.infomation.numDetetedObj: {}".format(dataFrame.detectedObjects.infomation.numDetetedObj)) # TODO: check this with `dataFrame.data.numDetectedObj`
+          logger.log(event="DataFrame.parse", level="logging", message="DataFrame.detectedObjects.infomation.xyzQFormat   : {}".format(dataFrame.detectedObjects.infomation.xyzQFormat   ))
+        # parse detectedObjects list
+        dataFrame.detectedObjects.Objects = []
+        for DetetedObj_index in range(dataFrame.detectedObjects.infomation.numDetetedObj):
           rangeIdx  , index = Converter.uint8_2_uint16(dataByte, index)
           dopplerIdx, index = Converter.uint8_2_int16(dataByte, index)
           peakVal   , index = Converter.uint8_2_uint16(dataByte, index)
           x         , index = Converter.uint8_2_int16(dataByte, index)
           y         , index = Converter.uint8_2_int16(dataByte, index)
           z         , index = Converter.uint8_2_int16(dataByte, index)
-          self.detectedObjects.Objects.append(self.detectedObjects.DetectedObj(rangeIdx, dopplerIdx, peakVal, x, y, z))
-          if log: self.logger.log(event="DataFrame.parse", level="logging", message="DataFrame.detectedObjects.Objects[{index:{index_log10}d}]: ({rangeIdx:3d}, {dopplerIdx:3d}, {peakVal:3d}, {x:5d}, {y:5d}, {z:5d}) -> ({xQFormat:8.4f}, {yQFormat:8.4f}, {zQFormat:8.4f})".format(
+          dataFrame.detectedObjects.Objects.append(dataFrame.detectedObjects.DetectedObj(rangeIdx, dopplerIdx, peakVal, x, y, z))
+          if log is not None: logger.log(event="DataFrame.parse", level="logging", message="DataFrame.detectedObjects.Objects[{index:{index_log10}d}]: ({rangeIdx:3d}, {dopplerIdx:3d}, {peakVal:3d}, {x:5d}, {y:5d}, {z:5d}) -> ({xQFormat:8.4f}, {yQFormat:8.4f}, {zQFormat:8.4f})".format(
             index=DetetedObj_index, 
-            index_log10=int(math.log10(self.detectedObjects.infomation.numDetetedObj))+1, 
+            index_log10=int(math.log10(dataFrame.detectedObjects.infomation.numDetetedObj))+1, 
             rangeIdx=rangeIdx, dopplerIdx=dopplerIdx, peakVal=peakVal, x=x, y=y, z=z, 
-            xQFormat=Converter.QFormat.parse(self.detectedObjects.infomation.xyzQFormat, x), 
-            yQFormat=Converter.QFormat.parse(self.detectedObjects.infomation.xyzQFormat, y), 
-            zQFormat=Converter.QFormat.parse(self.detectedObjects.infomation.xyzQFormat, z)))
-        # TODO: check TLV length
+            xQFormat=Converter.QFormat.parse(dataFrame.detectedObjects.infomation.xyzQFormat, x), 
+            yQFormat=Converter.QFormat.parse(dataFrame.detectedObjects.infomation.xyzQFormat, y), 
+            zQFormat=Converter.QFormat.parse(dataFrame.detectedObjects.infomation.xyzQFormat, z)))
+        # check TLV length
+        if 4 + (dataFrame.detectedObjects.infomation.numDetetedObj * 12) != TLV_Length: 
+          logger.log(event="DataFrame.parse.TLV", level="Warn", message="TLV(`detectedObjects`) length mismatch")
+        length += 8 + 4 + (dataFrame.detectedObjects.infomation.numDetetedObj * 12)
         # print("index: {}/{}".format(index, len(dataByte_uint8)))
-      # TLV: logMagRange
+
+      # parse TLV: logMagRange
       elif TLV_TypeId == 2:
-        self.logMagRange.logMagRange = list()
-        self.numRangeBins = TLV_Length//2
-        for _ in range(self.numRangeBins):
+        # parse logMagRange
+        dataFrame.logMagRange.logMagRange = list()
+        numRangeBins = TLV_Length//2
+        for _ in range(numRangeBins):
           _logMagRange, index = Converter.uint8_2_uint16(dataByte, index)
-          self.logMagRange.logMagRange.append(_logMagRange)
-        if log: self.logger.log(event="DataFrame.parse", level="logging", message="DataFrame.logMagRange: {}".format(self.logMagRange.logMagRange))
+          dataFrame.logMagRange.logMagRange.append(_logMagRange)
+        if log is not None: logger.log(event="DataFrame.parse", level="logging", message="DataFrame.logMagRange: {}".format(dataFrame.logMagRange.logMagRange))
+        length += 8 + TLV_Length
         # print("index: {}/{}".format(index, len(dataByte_uint8)))
-      # TLV: noiseProfile
+
+      # parse TLV: noiseProfile
       elif TLV_TypeId == 3:
-        self.noiseProfile.noiseProfile = list()
-        self.numRangeBins = TLV_Length//2
-        for _ in range(self.numRangeBins):
+        dataFrame.noiseProfile.noiseProfile = list()
+        numRangeBins = TLV_Length//2
+        for _ in range(numRangeBins):
           _noiseProfile, index = Converter.uint8_2_uint16(dataByte, index)
-          self.noiseProfile.noiseProfile.append(_noiseProfile)
-        if log: self.logger.log(event="DataFrame.parse", level="logging", message="DataFrame.noiseProfile: {}".format(self.noiseProfile.noiseProfile))
+          dataFrame.noiseProfile.noiseProfile.append(_noiseProfile)
+        if log is not None: logger.log(event="DataFrame.parse", level="logging", message="DataFrame.noiseProfile: {}".format(dataFrame.noiseProfile.noiseProfile))
+        length += 8 + TLV_Length
         # print("index: {}/{}".format(index, len(dataByte_uint8)))
-      # TLV: rangeAzimuthHeatMap
+
+      # parse TLV: rangeAzimuthHeatMap
       elif TLV_TypeId == 4:
-        self.rangeAzimuthHeatMap.rangeAzimuthHeatMap = list()
-        self.rangeAzimuthHeatMap.numRangeBins = self.numRangeBins
-        if self.numRangeBins is not None: # TODO: Restructure this paragraph
-          self.numVirtualAntAzim = (TLV_Length//4) // self.numRangeBins
-          self.rangeAzimuthHeatMap.numVirtualAntAzim = self.numVirtualAntAzim
-          for _ in range(self.numRangeBins): # TODO: unconfirmed is `numRangeBins` or `numVirtualAntAzim`
+        dataFrame.rangeAzimuthHeatMap.rangeAzimuthHeatMap = list()
+        dataFrame.rangeAzimuthHeatMap.numRangeBins = numRangeBins
+        if numRangeBins is not None: # TODO: Restructure this paragraph
+          numVirtualAntAzim = (TLV_Length//4) // numRangeBins
+          dataFrame.rangeAzimuthHeatMap.numVirtualAntAzim = numVirtualAntAzim
+          for _ in range(numRangeBins): # TODO: unconfirmed is `numRangeBins` or `numVirtualAntAzim`
             _numRangeBins = list()
-            for _ in range(self.numVirtualAntAzim): # TODO: unconfirmed is `numRangeBins` or `numVirtualAntAzim`
+            for _ in range(numVirtualAntAzim): # TODO: unconfirmed is `numRangeBins` or `numVirtualAntAzim`
               imag, index = Converter.uint8_2_int16(dataByte, index)
               real, index = Converter.uint8_2_int16(dataByte, index)
               _numRangeBins.append(DataFrame.RangeAzimuthHeatMap.Cmplx16ImRe(imag, real))
-            self.rangeAzimuthHeatMap.rangeAzimuthHeatMap.append(copy.deepcopy(_numRangeBins))
+            dataFrame.rangeAzimuthHeatMap.rangeAzimuthHeatMap.append(copy.deepcopy(_numRangeBins))
         else:
           for _ in range(TLV_Length//4):
             imag, index = Converter.uint8_2_int16(dataByte, index)
             real, index = Converter.uint8_2_int16(dataByte, index)
-            self.rangeAzimuthHeatMap.rangeAzimuthHeatMap.append(DataFrame.RangeAzimuthHeatMap.Cmplx16ImRe(imag, real))
-        if log: self.logger.log(event="DataFrame.parse", level="logging", message="DataFrame.rangeAzimuthHeatMap: {}".format(str(self.rangeAzimuthHeatMap))) # TODO: fix output content
+            dataFrame.rangeAzimuthHeatMap.rangeAzimuthHeatMap.append(DataFrame.RangeAzimuthHeatMap.Cmplx16ImRe(imag, real))
+        if log is not None: logger.log(event="DataFrame.parse", level="logging", message="DataFrame.rangeAzimuthHeatMap: {}".format(str(dataFrame.rangeAzimuthHeatMap)))
+        length += 8 + TLV_Length
         # print("index: {}/{}".format(index, len(dataByte_uint8)))
-      # TLV: rangeDopplerHeatMap
+
+      # parse TLV: rangeDopplerHeatMap
       elif TLV_TypeId == 5:
-        self.rangeDopplerHeatMap.rangeDopplerHeatMap = list()
-        self.rangeDopplerHeatMap.numRangeBins = self.numRangeBins
-        if self.numRangeBins is not None: # TODO: Restructure this paragraph
-          self.numDopplerBins = (TLV_Length//2) // self.numRangeBins
-          self.rangeDopplerHeatMap.numDopplerBins = self.numDopplerBins
-          for _ in range(self.numRangeBins): # TODO: unconfirmed is `numRangeBins` or `numDopplerBins`
+        dataFrame.rangeDopplerHeatMap.rangeDopplerHeatMap = list()
+        dataFrame.rangeDopplerHeatMap.numRangeBins = numRangeBins
+        if numRangeBins is not None: # TODO: Restructure this paragraph
+          numDopplerBins = (TLV_Length//2) // numRangeBins
+          dataFrame.rangeDopplerHeatMap.numDopplerBins = numDopplerBins
+          for _ in range(numRangeBins): # TODO: unconfirmed is `numRangeBins` or `numDopplerBins`
             _numRangeBins = list()
-            for _ in range(self.numDopplerBins): # TODO: unconfirmed is `numRangeBins` or `numDopplerBins`
+            for _ in range(numDopplerBins): # TODO: unconfirmed is `numRangeBins` or `numDopplerBins`
               _rangeDopplerHeatMap, index = Converter.uint8_2_uint16(dataByte, index)
               _numRangeBins.append(_rangeDopplerHeatMap)
-            self.rangeDopplerHeatMap.rangeDopplerHeatMap.append(copy.deepcopy(_numRangeBins))
+            dataFrame.rangeDopplerHeatMap.rangeDopplerHeatMap.append(copy.deepcopy(_numRangeBins))
         else:
           for _ in range(TLV_Length//4):
             _rangeDopplerHeatMap, index = Converter.uint8_2_uint16(dataByte, index)
-            self.rangeDopplerHeatMap.rangeDopplerHeatMap.append(_rangeDopplerHeatMap)
-        if log: self.logger.log(event="DataFrame.parse", level="logging", message="DataFrame.rangeDopplerHeatMap: {}".format(self.rangeDopplerHeatMap.rangeDopplerHeatMap))
+            dataFrame.rangeDopplerHeatMap.rangeDopplerHeatMap.append(_rangeDopplerHeatMap)
+        if log is not None: logger.log(event="DataFrame.parse", level="logging", message="DataFrame.rangeDopplerHeatMap: {}".format(dataFrame.rangeDopplerHeatMap.rangeDopplerHeatMap))
+        length += 8 + TLV_Length
         # print("index: {}/{}".format(index, len(dataByte_uint8)))
-      # TLV: statsInfo
+
+      # parse TLV: statsInfo
       elif TLV_TypeId == 6:
-        self.statsInfo.interFrameProcessingTime  , index = Converter.uint8_2_uint32(dataByte, index)
-        self.statsInfo.transmitOutputTime        , index = Converter.uint8_2_uint32(dataByte, index)
-        self.statsInfo.interFrameProcessingMargin, index = Converter.uint8_2_uint32(dataByte, index)
-        self.statsInfo.interChirpProcessingMargin, index = Converter.uint8_2_uint32(dataByte, index)
-        self.statsInfo.activeFrameCPULoad        , index = Converter.uint8_2_uint32(dataByte, index)
-        self.statsInfo.interFrameCPULoad         , index = Converter.uint8_2_uint32(dataByte, index)
-        if log: 
-          self.logger.log(event="DataFrame.parse", level="logging", message="DataFrame.statsInfo.interFrameProcessingTime  : {}".format(self.statsInfo.interFrameProcessingTime  ))
-          self.logger.log(event="DataFrame.parse", level="logging", message="DataFrame.statsInfo.transmitOutputTime        : {}".format(self.statsInfo.transmitOutputTime        ))
-          self.logger.log(event="DataFrame.parse", level="logging", message="DataFrame.statsInfo.interFrameProcessingMargin: {}".format(self.statsInfo.interFrameProcessingMargin))
-          self.logger.log(event="DataFrame.parse", level="logging", message="DataFrame.statsInfo.interChirpProcessingMargin: {}".format(self.statsInfo.interChirpProcessingMargin))
-          self.logger.log(event="DataFrame.parse", level="logging", message="DataFrame.statsInfo.activeFrameCPULoad        : {}".format(self.statsInfo.activeFrameCPULoad        ))
-          self.logger.log(event="DataFrame.parse", level="logging", message="DataFrame.statsInfo.interFrameCPULoad         : {}".format(self.statsInfo.interFrameCPULoad         ))
+        dataFrame.statsInfo.interFrameProcessingTime  , index = Converter.uint8_2_uint32(dataByte, index)
+        dataFrame.statsInfo.transmitOutputTime        , index = Converter.uint8_2_uint32(dataByte, index)
+        dataFrame.statsInfo.interFrameProcessingMargin, index = Converter.uint8_2_uint32(dataByte, index)
+        dataFrame.statsInfo.interChirpProcessingMargin, index = Converter.uint8_2_uint32(dataByte, index)
+        dataFrame.statsInfo.activeFrameCPULoad        , index = Converter.uint8_2_uint32(dataByte, index)
+        dataFrame.statsInfo.interFrameCPULoad         , index = Converter.uint8_2_uint32(dataByte, index)
+        if log is not None: 
+          logger.log(event="DataFrame.parse", level="logging", message="DataFrame.statsInfo.interFrameProcessingTime  : {}".format(dataFrame.statsInfo.interFrameProcessingTime  ))
+          logger.log(event="DataFrame.parse", level="logging", message="DataFrame.statsInfo.transmitOutputTime        : {}".format(dataFrame.statsInfo.transmitOutputTime        ))
+          logger.log(event="DataFrame.parse", level="logging", message="DataFrame.statsInfo.interFrameProcessingMargin: {}".format(dataFrame.statsInfo.interFrameProcessingMargin))
+          logger.log(event="DataFrame.parse", level="logging", message="DataFrame.statsInfo.interChirpProcessingMargin: {}".format(dataFrame.statsInfo.interChirpProcessingMargin))
+          logger.log(event="DataFrame.parse", level="logging", message="DataFrame.statsInfo.activeFrameCPULoad        : {}".format(dataFrame.statsInfo.activeFrameCPULoad        ))
+          logger.log(event="DataFrame.parse", level="logging", message="DataFrame.statsInfo.interFrameCPULoad         : {}".format(dataFrame.statsInfo.interFrameCPULoad         ))
+        length += 8 + TLV_Length
         # print("index: {}/{}".format(index, len(dataByte_uint8)))
-      else: self.logger.log(event="DataFrame.parse", level="Error", message="Error TypeId: {}".format(TLV_TypeId))
-      # TODO: check frame length
-      # TODO: clear readed frame data from `data.buffer`
-    
+
+      # deal with padding
+      # elif TLV_TypeId & 0x000000ff == 0x00000000:
+      elif dataByte[index-8] == 0x00:
+        index -= 8
+        while dataByte[index] == 0x00:
+          index += 1
+          length += 1
+        break
+
+      else: 
+        logger.log(event="DataFrame.parse", level="Warn", message="Error TypeId: {}".format(TLV_TypeId))
+
     # print("index: {}/{}".format(index, len(dataByte_uint8)))
+
+    # check dataFrame length is match (need to count parsed bytes from dataByte)
+    if dataFrame.totalPacketLen != length:
+      logger.log(event="DataFrame.parse", level="Warn", message="dataFrame length mismatch")
+
+    return dataFrame
