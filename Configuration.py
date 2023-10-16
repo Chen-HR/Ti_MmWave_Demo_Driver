@@ -1587,9 +1587,14 @@ class Configuration_2_1_0:
           Command = Configuration_2_1_0.Command.SensorStop.Command
         )
 
-    def __init__(self): # TODO: add self.platform to control supported commands
+    def __init__(self, platform: str): # TODO: add self.platform to control supported commands
       """Initialize all command
+
+      Args:
+        platform (str): Platform type, only accepts "xWR14xx" and "xWR16xx"
       """
+      if platform != "xWR14xx" and platform != "xWR16xx": raise ValueError("Unrecognized platform: {platform}".format(platform=platform))
+      self.platform: str = platform
       self.sensorStart                    = Configuration_2_1_0.Command.SensorStart()
       self.flushCfg                       = Configuration_2_1_0.Command.FlushCfg()
       self.dfeDataOutputMode              = Configuration_2_1_0.Command.DfeDataOutputMode()
@@ -1597,7 +1602,7 @@ class Configuration_2_1_0:
       self.adcCfg                         = Configuration_2_1_0.Command.AdcCfg()
       self.adcbufCfg                      = Configuration_2_1_0.Command.AdcbufCfg()
       self.profileCfg                     = Configuration_2_1_0.Command.ProfileCfg()
-      self.bpmCfg                         = Configuration_2_1_0.Command.BpmCfg()
+      if platform == "xWR16xx": self.bpmCfg                         = Configuration_2_1_0.Command.BpmCfg()
       self.lowPower                       = Configuration_2_1_0.Command.LowPower()
       self.frameCfg                       = Configuration_2_1_0.Command.FrameCfg()
       self.advFrameCfg                    = Configuration_2_1_0.Command.AdvFrameCfg()
@@ -1607,15 +1612,15 @@ class Configuration_2_1_0:
       self.peakGrouping                   = Configuration_2_1_0.Command.PeakGrouping()
       self.multiObjBeamForming            = Configuration_2_1_0.Command.MultiObjBeamForming()
       self.calibDcRangeSig                = Configuration_2_1_0.Command.CalibDcRangeSig()
-      self.extendedMaxVelocity            = Configuration_2_1_0.Command.ExtendedMaxVelocity()
+      if platform == "xWR16xx": self.extendedMaxVelocity            = Configuration_2_1_0.Command.ExtendedMaxVelocity()
       self.clutterRemoval                 = Configuration_2_1_0.Command.ClutterRemoval()
       self.compRangeBiasAndRxChanPhase    = Configuration_2_1_0.Command.CompRangeBiasAndRxChanPhase()
       self.measureRangeBiasAndRxChanPhase = Configuration_2_1_0.Command.MeasureRangeBiasAndRxChanPhase()
-      self.nearFieldCfg                   = Configuration_2_1_0.Command.NearFieldCfg()
+      if platform == "xWR16xx": self.nearFieldCfg                   = Configuration_2_1_0.Command.NearFieldCfg()
       self.cQRxSatMonitor                 = Configuration_2_1_0.Command.CQRxSatMonitor()
       self.cQSigImgMonitor                = Configuration_2_1_0.Command.CQSigImgMonitor()
       self.analogMonitor                  = Configuration_2_1_0.Command.AnalogMonitor()
-      self.lvdsStreamCfg                  = Configuration_2_1_0.Command.LvdsStreamCfg()
+      if platform == "xWR16xx": self.lvdsStreamCfg                  = Configuration_2_1_0.Command.LvdsStreamCfg()
       self.sensorStop                     = Configuration_2_1_0.Command.SensorStop()
       self.chirpCfg_list: list[Configuration_2_1_0.Command.ChirpCfg] = list()
     def parse(self, commandLine: str) -> None:
@@ -1647,8 +1652,8 @@ class Configuration_2_1_0:
       if commandLine.startswith("compRangeBiasAndRxChanPhase"): self.compRangeBiasAndRxChanPhase.parse(commandLine)
       if commandLine.startswith("measureRangeBiasAndRxChanPhase"): self.measureRangeBiasAndRxChanPhase.parse(commandLine)
       if commandLine.startswith("nearFieldCfg"): self.nearFieldCfg.parse(commandLine)
-      if commandLine.startswith("cQRxSatMonitor"): self.cQRxSatMonitor.parse(commandLine)
-      if commandLine.startswith("cQSigImgMonitor"): self.cQSigImgMonitor.parse(commandLine)
+      if commandLine.startswith("CQRxSatMonitor"): self.cQRxSatMonitor.parse(commandLine)
+      if commandLine.startswith("CQSigImgMonitor"): self.cQSigImgMonitor.parse(commandLine)
       if commandLine.startswith("analogMonitor"): self.analogMonitor.parse(commandLine)
       if commandLine.startswith("lvdsStreamCfg"): self.lvdsStreamCfg.parse(commandLine)
       if commandLine.startswith("sensorStop"): self.sensorStop.parse(commandLine)
@@ -1683,25 +1688,25 @@ class Configuration_2_1_0:
       commandLines.append(self.profileCfg.commandLine)
       for chirpCfg in self.chirpCfg_list:
         commandLines.append(chirpCfg.commandLine)
-      commandLines.append(self.bpmCfg.commandLine)
+      if self.platform == "xWR16xx": commandLines.append(self.bpmCfg.commandLine)
       commandLines.append(self.lowPower.commandLine)
       commandLines.append(self.frameCfg.commandLine)
-      commandLines.append(self.advFrameCfg.commandLine)
-      commandLines.append(self.subFrameCfg.commandLine)
+      if self.dfeDataOutputMode.modeType == 3: commandLines.append(self.advFrameCfg.commandLine)
+      if self.dfeDataOutputMode.modeType == 3: commandLines.append(self.subFrameCfg.commandLine)
       commandLines.append(self.guiMonitor.commandLine)
       commandLines.append(self.cfarCfg.commandLine)
       commandLines.append(self.peakGrouping.commandLine)
       commandLines.append(self.multiObjBeamForming.commandLine)
       commandLines.append(self.calibDcRangeSig.commandLine)
-      commandLines.append(self.extendedMaxVelocity.commandLine)
+      if self.platform == "xWR16xx": commandLines.append(self.extendedMaxVelocity.commandLine)
       commandLines.append(self.clutterRemoval.commandLine)
       commandLines.append(self.compRangeBiasAndRxChanPhase.commandLine)
       commandLines.append(self.measureRangeBiasAndRxChanPhase.commandLine)
-      commandLines.append(self.nearFieldCfg.commandLine)
+      if self.platform == "xWR16xx": commandLines.append(self.nearFieldCfg.commandLine)
       commandLines.append(self.cQRxSatMonitor.commandLine)
       commandLines.append(self.cQSigImgMonitor.commandLine)
       commandLines.append(self.analogMonitor.commandLine)
-      commandLines.append(self.lvdsStreamCfg.commandLine)
+      if self.platform == "xWR16xx": commandLines.append(self.lvdsStreamCfg.commandLine)
       if sensorStart: commandLines.append(self.sensorStart.commandLine)
       for i in range(len(commandLines)):
         commandLines[i] = re.sub(r'\s+', ' ', commandLines[i].strip())
@@ -1712,9 +1717,15 @@ class Configuration_2_1_0:
   class Parameter:
     """Device configuration parameters
     """
-    def __init__(self) -> None: # TODO: add self.platform
+    def __init__(self, platform: str) -> None: # TODO: add self.platform
       """Initialize all parameters
+
+      Args:
+        platform (str): Platform type, only accepts "xWR14xx" and "xWR16xx"
       """
+      if platform != "xWR14xx" and platform != "xWR16xx": raise ValueError("Unrecognized platform: {platform}".format(platform=platform))
+      self.platform: str = platform
+      self.dfeDataOutputMode = None
       self.numRxAnt = None 
       self.numTxAnt = None 
       self.numVirtualAntennas = None 
@@ -1729,11 +1740,10 @@ class Configuration_2_1_0:
       self.thresholdScaleDb = None 
       self.logger = Log.Logger(fileName="Log/Configuration_2_1_0.log")
 
-    def parse(self, platform: str, command, verificationLevel: str="Error") -> None: # TODO: trans to use `setter` and `getter`
+    def parse(self, command, verificationLevel: str="Error") -> None: # TODO: trans to use `setter` and `getter`
       """Parse the command to get the configured parameters
 
       Args:
-        platform (str): Platform type, only accepts "xWR14xx" and "xWR16xx"
         command (Configuration_2_1_0.Command): Command object to parse
         verificationLevel (str, optional): logging level when parsing. Defaults to "Error".
 
@@ -1757,6 +1767,13 @@ class Configuration_2_1_0:
         return value
 
       Missing_Command = False
+
+      if not Missing_Command: 
+        try:
+          self.dfeDataOutputMode = command.dfeDataOutputMode.modeType
+        except TypeError:
+          Missing_Command = True
+          self.logger.log(event="Configuration_2_1_0.Parameter.parse", level=verificationLevel, message="Missing command: `dfeDataOutputMode`")
 
       if not Missing_Command: 
         try:
@@ -1795,9 +1812,9 @@ class Configuration_2_1_0:
 
       if not Missing_Command: 
         try:
-          if platform == "xWR14xx":
+          if self.platform == "xWR14xx":
             self.thresholdScaleDb = (command.cfarCfg.ThresholdScale * 6 * 2**math.ceil(math.log2(self.numVirtualAntennas))) // (512 * self.numVirtualAntennas)
-          if platform == "xWR16xx":
+          if self.platform == "xWR16xx":
             self.thresholdScaleDb = (command.cfarCfg.ThresholdScale * 6) // (256 * self.numVirtualAntennas)
         except TypeError:
           Missing_Command = True
@@ -1820,8 +1837,8 @@ class Configuration_2_1_0:
       platform (str): Platform type, only accepts "xWR14xx" and "xWR16xx"
     """
     self.platform: str = platform
-    self.command: Configuration_2_1_0.Command = Configuration_2_1_0.Command()
-    self.parameter: Configuration_2_1_0.Parameter = Configuration_2_1_0.Parameter() 
+    self.command: Configuration_2_1_0.Command = Configuration_2_1_0.Command(platform)
+    self.parameter: Configuration_2_1_0.Parameter = Configuration_2_1_0.Parameter(platform) 
     self.logger = Log.Logger(fileName="Log/Configuration_2_1_0.log")
 
   def parse_commandLine(self, commandLine: str) -> None:
@@ -1833,8 +1850,8 @@ class Configuration_2_1_0:
     commandLine = commandLine.strip()
     parts: list[str] = commandLine.split(" ")
     self.command.parse(commandLine)
-    if parts[0] == "sensorStart" or parts[0] == "channelCfg" or parts[0] == "profileCfg" or parts[0] == "frameCfg" or parts[0] == "cfarCfg":
-      self.parameter.parse(self.platform, self.command)
+    if parts[0] == "sensorStart" or parts[0] == "dfeDataOutputMode" or parts[0] == "channelCfg" or parts[0] == "profileCfg" or parts[0] == "frameCfg" or parts[0] == "cfarCfg":
+      self.parameter.parse(self.command)
 
   def set_CfarRangeThreshold_dB(self, threshold_dB: int|float) -> None:
     """Set cfar range threshold dB value
