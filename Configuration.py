@@ -201,7 +201,7 @@ class Configuration_2_1_0:
           _ = parts.pop(0)
           if len(parts) == 2:
             self.numADCBits = int(parts.pop(0))
-            self.txChannelEn = int(parts.pop(0))
+            self.adcOutputFmt = int(parts.pop(0))
       @property
       def commandLine(self) -> str:
         """Convert command data to command line string
@@ -395,14 +395,14 @@ class Configuration_2_1_0:
         return Configuration_2_1_0.Command.ProfileCfg.Format.format(
           Command = Configuration_2_1_0.Command.ProfileCfg.Command, 
           profileId = str(self.profileId) if self.profileId != None else "", 
-          startFreq = str(self.startFreq) if self.startFreq != None else "", 
-          idleTime = str(self.idleTime) if self.idleTime != None else "", 
-          adcStartTime = str(self.adcStartTime) if self.adcStartTime != None else "", 
-          rampEndTime = str(self.rampEndTime) if self.rampEndTime != None else "", 
+          startFreq = str(self.startFreq)[0:-2] if str(self.startFreq).endswith(".0") else str(self.startFreq) if self.startFreq != None else "", 
+          idleTime = str(self.idleTime)[0:-2] if str(self.idleTime).endswith(".0") else str(self.idleTime) if self.idleTime != None else "", 
+          adcStartTime = str(self.adcStartTime)[0:-2] if str(self.adcStartTime).endswith(".0") else str(self.adcStartTime) if self.adcStartTime != None else "", 
+          rampEndTime = str(self.rampEndTime)[0:-2] if str(self.rampEndTime).endswith(".0") else str(self.rampEndTime) if self.rampEndTime != None else "", 
           txOutPower = str(self.txOutPower) if self.txOutPower != None else "", 
           txPhaseShifter = str(self.txPhaseShifter) if self.txPhaseShifter != None else "", 
-          freqSlopeConst = str(self.freqSlopeConst) if self.freqSlopeConst != None else "", 
-          txStartTime = str(self.txStartTime) if self.txStartTime != None else "", 
+          freqSlopeConst = str(self.freqSlopeConst)[0:-2] if str(self.freqSlopeConst).endswith(".0") else str(self.freqSlopeConst) if self.freqSlopeConst != None else "", 
+          txStartTime = str(self.txStartTime)[0:-2] if str(self.txStartTime).endswith(".0") else str(self.txStartTime) if self.txStartTime != None else "", 
           numAdcSamples = str(self.numAdcSamples) if self.numAdcSamples != None else "", 
           digOutSampleRate = str(self.digOutSampleRate) if self.digOutSampleRate != None else "", 
           hpfCornerFreq1 = str(self.hpfCornerFreq1) if self.hpfCornerFreq1 != None else "", 
@@ -464,11 +464,11 @@ class Configuration_2_1_0:
           Command = Configuration_2_1_0.Command.ChirpCfg.Command, 
           chirpStartIndex = str(self.chirpStartIndex) if self.chirpStartIndex != None else "", 
           chirpEndIndex = str(self.chirpEndIndex) if self.chirpEndIndex != None else "", 
-          profileIdentifier = str(self.profileIdentifier) if self.profileIdentifier != None else "", 
+          profileIdentifier = str(self.profileIdentifier)[0:-2] if str(self.profileIdentifier).endswith(".0") else str(self.profileIdentifier) if self.profileIdentifier != None else "", 
           startFrequencyVariation = str(self.startFrequencyVariation) if self.startFrequencyVariation != None else "", 
-          frequencySlopeVariation = str(self.frequencySlopeVariation) if self.frequencySlopeVariation != None else "", 
-          idleTimeVariation = str(self.idleTimeVariation) if self.idleTimeVariation != None else "", 
-          adcStartTimeVariation = str(self.adcStartTimeVariation) if self.adcStartTimeVariation != None else "", 
+          frequencySlopeVariation = str(self.frequencySlopeVariation)[0:-2] if str(self.frequencySlopeVariation).endswith(".0") else str(self.frequencySlopeVariation) if self.frequencySlopeVariation != None else "", 
+          idleTimeVariation = str(self.idleTimeVariation)[0:-2] if str(self.idleTimeVariation).endswith(".0") else str(self.idleTimeVariation) if self.idleTimeVariation != None else "", 
+          adcStartTimeVariation = str(self.adcStartTimeVariation)[0:-2] if str(self.adcStartTimeVariation).endswith(".0") else str(self.adcStartTimeVariation) if self.adcStartTimeVariation != None else "", 
           txAntennaEnableMask = str(self.txAntennaEnableMask) if self.txAntennaEnableMask != None else ""
         )
     class BpmCfg:
@@ -633,9 +633,9 @@ class Configuration_2_1_0:
           chirpEndIndex = str(self.chirpEndIndex) if self.chirpEndIndex != None else "", 
           numberOfLoops = str(self.numberOfLoops) if self.numberOfLoops != None else "", 
           numberOfFrames = str(self.numberOfFrames) if self.numberOfFrames != None else "", 
-          framePeriodicity = str(self.framePeriodicity) if self.framePeriodicity != None else "", 
+          framePeriodicity = str(self.framePeriodicity)[0:-2] if str(self.framePeriodicity).endswith(".0") else str(self.framePeriodicity) if self.framePeriodicity != None else "", 
           triggerSelect = str(self.triggerSelect) if self.triggerSelect != None else "", 
-          frameTriggerDelay = str(self.frameTriggerDelay) if self.frameTriggerDelay != None else ""
+          frameTriggerDelay = str(self.frameTriggerDelay)[0:-2] if str(self.frameTriggerDelay).endswith(".0") else str(self.frameTriggerDelay) if self.frameTriggerDelay != None else ""
         )
     class AdvFrameCfg:
       """
@@ -694,7 +694,7 @@ class Configuration_2_1_0:
           forceProfile = str(self.forceProfile) if self.forceProfile != None else "", 
           numFrames = str(self.numFrames) if self.numFrames != None else "", 
           triggerSelect = str(self.triggerSelect) if self.triggerSelect != None else "", 
-          frameTrigDelay = str(self.frameTrigDelay) if self.frameTrigDelay != None else ""
+          frameTrigDelay = str(self.frameTrigDelay)[0:-2] if str(self.frameTrigDelay).endswith(".0") else str(self.frameTrigDelay) if self.frameTrigDelay != None else ""
         )
     class SubFrameCfg:
       """
@@ -773,11 +773,11 @@ class Configuration_2_1_0:
           chirpStartIdx = str(self.chirpStartIdx) if self.chirpStartIdx != None else "", 
           numOfChirps = str(self.numOfChirps) if self.numOfChirps != None else "", 
           numLoops = str(self.numLoops) if self.numLoops != None else "", 
-          burstPeriodicity = str(self.burstPeriodicity) if self.burstPeriodicity != None else "", 
+          burstPeriodicity = str(self.burstPeriodicity)[0:-2] if str(self.burstPeriodicity).endswith(".0") else str(self.burstPeriodicity) if self.burstPeriodicity != None else "", 
           chirpStartIdxOffset = str(self.chirpStartIdxOffset) if self.chirpStartIdxOffset != None else "", 
           numOfBurst = str(self.numOfBurst) if self.numOfBurst != None else "", 
           numOfBurstLoops = str(self.numOfBurstLoops) if self.numOfBurstLoops != None else "", 
-          subFramePeriodicity = str(self.subFramePeriodicity) if self.subFramePeriodicity != None else ""
+          subFramePeriodicity = str(self.subFramePeriodicity)[0:-2] if str(self.subFramePeriodicity).endswith(".0") else str(self.subFramePeriodicity) if self.subFramePeriodicity != None else ""
         )
     class GuiMonitor:
       """
@@ -1057,7 +1057,7 @@ class Configuration_2_1_0:
           Command = Configuration_2_1_0.Command.MultiObjBeamForming.Command, 
           subFrameIdx = str(self.subFrameIdx) if self.subFrameIdx != None else "", 
           featureEnabled = str(self.featureEnabled) if self.featureEnabled != None else "", 
-          threshold = str(self.threshold) if self.threshold != None else ""
+          threshold = str(self.threshold)[0:-2] if str(self.threshold).endswith(".0") else str(self.threshold) if self.threshold != None else ""
         )
     class CalibDcRangeSig:
       """
@@ -1251,7 +1251,7 @@ class Configuration_2_1_0:
         """
         return Configuration_2_1_0.Command.CompRangeBiasAndRxChanPhase.Format.format(
           Command = Configuration_2_1_0.Command.CompRangeBiasAndRxChanPhase.Command, 
-          rangeBias = str(self.rangeBias) if self.rangeBias != None else "", 
+          rangeBias = str(self.rangeBias)[0:-2] if str(self.rangeBias).endswith(".0") else str(self.rangeBias) if self.rangeBias != None else "", 
           setOfComplexValue = ' '.join(map(str, self.setOfComplexValue)) if self.setOfComplexValue != None else ""
         )
     class MeasureRangeBiasAndRxChanPhase:
@@ -1299,8 +1299,8 @@ class Configuration_2_1_0:
         return Configuration_2_1_0.Command.MeasureRangeBiasAndRxChanPhase.Format.format(
           Command = Configuration_2_1_0.Command.MeasureRangeBiasAndRxChanPhase.Command, 
           enabled = str(self.enabled) if self.enabled != None else "", 
-          targetDistance = str(self.targetDistance) if self.targetDistance != None else "", 
-          searchWin = str(self.searchWin) if self.searchWin != None else ""
+          targetDistance = str(self.targetDistance)[0:-2] if str(self.targetDistance).endswith(".0") else str(self.targetDistance) if self.targetDistance != None else "", 
+          searchWin = str(self.searchWin)[0:-2] if str(self.searchWin).endswith(".0") else str(self.searchWin) if self.searchWin != None else ""
         )
     class NearFieldCfg:
       """
