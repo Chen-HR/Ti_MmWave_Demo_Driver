@@ -295,10 +295,10 @@ if __name__ == '__main__':
   device.data.logger.echo = True
   print("configured device...")
   device.sensorStop(log=True)
-  device.Ctrl_Load_file("Profile\Profile-2.cfg")
+  device.Ctrl_Load_file("Profile\Profile-3.cfg")
   device.config.set_CfarRangeThreshold_dB(threshold_dB=12)
   device.config.set_RemoveStaticClutter(enabled=True)
-  # device.config.set_FramePeriodicity(FramePeriodicity_ms=2000)
+  device.config.set_FramePeriodicity(FramePeriodicity_ms=200)
   device.Ctrl_Send()
   device.sensorStart(log=True)
   print("sensorStart")
@@ -381,7 +381,7 @@ if __name__ == '__main__':
           crc32: numpy.uint32 = 0
           if device.data is not None and device.data.iscomplete and device.data.CRC32 != crc32:
             detectedPoints = [(DataFrame.Converter.QFormat.parse(device.data.detectedObjects.infomation.xyzQFormat, DetectedObj.x), DataFrame.Converter.QFormat.parse(device.data.detectedObjects.infomation.xyzQFormat, DetectedObj.y), DataFrame.Converter.QFormat.parse(device.data.detectedObjects.infomation.xyzQFormat, DetectedObj.z)) for DetectedObj in device.data.detectedObjects.Objects]
-            detectedPoints_transposed: tuple[list[float], list[float], list[float]] = tuple(list(x) for x in zip(*detectedPoints))
+            detectedPoints_transposed: tuple[list[float], list[float], list[float]] = tuple(list(x) for x in zip(*detectedPoints)) if len(detectedPoints) != 0 else ([], [], [])
             print(detectedPoints)
             DetectionDistances = sorted([round(distance(DetectedPoint), 2) for DetectedPoint in detectedPoints])
             print(DetectionDistances)
@@ -408,7 +408,7 @@ if __name__ == '__main__':
         crc32: numpy.uint32 = 0
         if device.data is not None and device.data.iscomplete and device.data.CRC32 != crc32:
           detectedPoints = [(DataFrame.Converter.QFormat.parse(device.data.detectedObjects.infomation.xyzQFormat, DetectedObj.x), DataFrame.Converter.QFormat.parse(device.data.detectedObjects.infomation.xyzQFormat, DetectedObj.y), DataFrame.Converter.QFormat.parse(device.data.detectedObjects.infomation.xyzQFormat, DetectedObj.z)) for DetectedObj in device.data.detectedObjects.Objects]
-          detectedPoints_transposed: tuple[list[float], list[float], list[float]] = tuple(list(x) for x in zip(*detectedPoints))
+          detectedPoints_transposed: tuple[list[float], list[float], list[float]] = tuple(list(x) for x in zip(*detectedPoints)) if len(detectedPoints) != 0 else ([], [], [])
           print(detectedPoints)
           DetectionDistances = sorted([round(distance(DetectedPoint), 2) for DetectedPoint in detectedPoints])
           print(DetectionDistances)
@@ -448,7 +448,7 @@ if __name__ == '__main__':
       device.Data_Parse_unit()
       if device.data is not None and device.data.iscomplete and device.data.CRC32 is not None:
         detectedPoints = [(DataFrame.Converter.QFormat.parse(device.data.detectedObjects.infomation.xyzQFormat, DetectedObj.x), DataFrame.Converter.QFormat.parse(device.data.detectedObjects.infomation.xyzQFormat, DetectedObj.y), DataFrame.Converter.QFormat.parse(device.data.detectedObjects.infomation.xyzQFormat, DetectedObj.z)) for DetectedObj in device.data.detectedObjects.Objects]
-        detectedPoints_transposed: tuple[list[float], list[float], list[float]] = tuple(list(x) for x in zip(*detectedPoints))
+        detectedPoints_transposed: tuple[list[float], list[float], list[float]] = tuple(list(x) for x in zip(*detectedPoints)) if len(detectedPoints) != 0 else ([], [], [])
         scatter._offsets3d = detectedPoints_transposed
 
     animation = matplotlib.animation.FuncAnimation(fig=figure, func=update_matplotlibAnimation_SOP, fargs=(axes.scatter([], [], [], label='Detection Object'), ), interval=100)
