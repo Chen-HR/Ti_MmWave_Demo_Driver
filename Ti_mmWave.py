@@ -287,6 +287,242 @@ class Ti_mmWave:
   def Data_Parse_thread_stop(self):
     self.Parse_active = False
 
+# Calculate the distance between two points
+distance = lambda point1, point2: float(numpy.linalg.norm(numpy.array(point1) - numpy.array(point2)))
+# Calculate the center point of a cluster
+center = lambda cluster: tuple(numpy.array([sum(vL) for vL in numpy.transpose(numpy.array(list(cluster)))]) / len(cluster))
+
+def integration_V1_universal(points: list, rule, point=lambda point: point) -> list[tuple]:
+  """merge adjacent points into one point
+
+    1. Iterate through each point in the input list
+    2. Check if the point belongs to any existing cluster based on the rule
+    3. If the point does not belong to any cluster, create a new cluster
+    4. If the point belongs to multiple clusters, merge those clusters
+    5. Calculate the center point as the average of its points
+
+  Args:
+      points (list): Coordinate points to be processed
+      rule (_type_): lambda
+      point (_type_, optional): method to get coordinates. Defaults to `lambda point: point`.
+
+  Returns:
+      list[tuple]: Merged coordinates
+  """
+  clusters: list[set] = []
+  
+  for i in range(len(points)):
+    for j in range(i+1, len(points)):
+      # Join or add a new cluster
+      if rule(points[i], points[j]):
+        clustered = False
+        newCluster = {point(points[i]), point(points[j])}
+        # Join cluster
+        for cluster in clusters:
+          if not cluster.isdisjoint(newCluster):
+            cluster |= newCluster
+            clustered = True
+            break  # Exit the loop after merging the cluster
+        # Add a new cluster
+        if not clustered:
+          clusters.append(newCluster)
+
+  # Merge associated clusters
+  i = 0
+  while i < len(clusters):
+    j = i + 1
+    while j < len(clusters):
+      if clusters[i].isdisjoint(clusters[j]):
+        j += 1
+      else:
+        clusters[i] |= clusters.pop(j)
+    i += 1
+
+  # Calculate the center point for each cluster
+  return [center(cluster) for cluster in clusters if cluster]
+
+def integration_V2_1(points: list[tuple], limit: float | int, scaling: float | int) -> list[tuple]:
+  """Integration and filtering of detection points
+
+    1. Generate weighted virtual points
+      1.1. Position: midpoint between two points
+      1.2. Weight: log⁡(1/(𝑑/𝑟))
+        1.2.1. 𝑑 : distance between two points
+        1.2.2. 𝑟: distance limitation coefficient
+    2. Generate virtual point clusters using existing virtual points as reference targets
+      2.1. Point cluster: The weight of the generated virtual points is greater than 0, and the distance between virtual points is less than α𝑟
+        2.1.1. α	distance limit scaling factor
+    3. Merge virtual point cluster to generate merged points
+
+  Args:
+      points (list[tuple]): Coordinate points to be processed
+      limit (float | int): distance limitation coefficient
+      scaling (float | int): distance limit scaling factor
+
+  Returns:
+      list[tuple]: Merged coordinates
+  """
+  class VirtualPoint:
+    def __init__(self, point1: tuple, point2: tuple, limit: float):
+      self.sources = (numpy.array(point1), numpy.array(point2))
+      # 1.1. Position: midpoint between two points
+      self.point = tuple((self.sources[0] + self.sources[1])/2)
+      # 1.2. Weight: log⁡(1/(𝑑/𝑟))
+      #   1.2.1. 𝑑 : distance between two points
+      #   1.2.2. 𝑟: distance limitation coefficient
+      self.weight = numpy.log(1/(numpy.linalg.norm(self.sources[0]- self.sources[1])/limit))
+  # 1. Generate weighted virtual points # NOTE: not full
+  virtualPoints: list[VirtualPoint] = [VirtualPoint(points[i], points[j], limit) for i in range(len(points)) for j in range(i+1, len(points))]
+  # 2. Generate virtual point clusters using existing virtual points as reference targets
+  # 3. Merge virtual point cluster to generate merged points
+  virtualClusterCenters = integration_V1_universal(virtualPoints, lambda point1, point2: point1.weight>0 and point2.weight>0 and distance(point1.point, point2.point) < scaling*limit, lambda virtualPoint: virtualPoint.point)
+  return virtualClusterCenters
+
+def integration_V2_2(points: list[tuple], limit: float | int, scaling: float | int) -> list[tuple]:
+  """Integration and filtering of detection points
+
+    1. Generate weighted virtual points
+      1.1. Position: midpoint between two points
+      1.2. Weight: log⁡(1/(𝑑/𝑟))
+        1.2.1. 𝑑 : distance between two points
+        1.2.2. 𝑟: distance limitation coefficient
+    2. Generate point clusters using existing virtual points as reference targets
+      2.1. Point clusters: The weight of the generated virtual points is greater than 0, and the distance between virtual points is less than α𝑟
+        2.1.1. α	distance limit scaling factor
+    3. Merge point clusters to generate merged points
+
+  Args:
+      points (list[tuple]): Coordinate points to be processed
+      limit (float | int): distance limitation coefficient
+      scaling (float | int): distance limit scaling factor
+
+  Returns:
+      list[tuple]: Merged coordinates
+  """
+  class VirtualPoint:
+    def __init__(self, point1: tuple, point2: tuple, limit: float):
+      self.sources = (numpy.array(point1), numpy.array(point2))
+      # 1.1. Position: midpoint between two points
+      self.point = tuple((self.sources[0] + self.sources[1])/2)
+      # 1.2. Weight: log⁡(1/(𝑑/𝑟))
+      #   1.2.1. 𝑑 : distance between two points
+      #   1.2.2. 𝑟: distance limitation coefficient
+      self.weight = numpy.log(1/(numpy.linalg.norm(self.sources[0]- self.sources[1])/limit))
+      self.sources = (tuple(self.sources[0]), tuple(self.sources[1]))
+  # 1. Generate weighted virtual points
+  virtualPoints: list[VirtualPoint] = [VirtualPoint(points[i], points[j], limit) for i in range(len(points)) for j in range(i+1, len(points))]
+  # 2. Generate point clusters using existing virtual points as reference targets
+  clusters: list[set] = []
+  for i in range(len(virtualPoints)):
+    for j in range(i+1, len(virtualPoints)):
+
+      # Join or add a new cluster
+      if virtualPoints[i].weight>0 and virtualPoints[j].weight>0 and distance(virtualPoints[i].point, virtualPoints[j].point) < scaling*limit:
+        clustered = False
+        newCluster = set(virtualPoints[i].sources) | set(virtualPoints[j].sources)
+        # Join cluster
+        for cluster in clusters:
+          if cluster.isdisjoint(newCluster):
+            cluster |= newCluster
+            clustered = True
+        # Add a new cluster
+        if not clustered:
+          clusters.append(newCluster)
+
+      # Merge associated clusters
+      i = 0
+      while i < len(clusters):
+        j = i + 1
+        while j < len(clusters):
+          if clusters[i].isdisjoint(clusters[j]):
+            j += 1
+          else:
+            clusters[i] |= clusters.pop(j)
+        i += 1
+  # 3. Merge point clusters to generate merged points
+  return [center(cluster) for cluster in clusters]
+
+def integration_V2_3(points: list[tuple], limit: float | int, scaling: float | int) -> list[tuple]:
+  """Integration and filtering of detection points
+
+    1. Generate weighted virtual points
+      1.1. Position: midpoint between two points
+      1.2. Weight: log⁡(1/(𝑑/𝑟))
+        1.2.1. 𝑑 : distance between two points
+        1.2.2. 𝑟 : distance limitation coefficient
+    2. Generate point clusters using existing virtual points as reference targets
+      2.1. Point cluster: The weight of the generated virtual points is greater than 0, and the distance between virtual points is less than α𝑟
+        2.1.1. α	distance limit scaling factor
+    3. The virtual point weights within each point cluster are synthesized into each point weight.
+      3.1. Weight: virtual point weight average
+    4. Calculate the center of gravity of each point cluster
+
+  Args:
+      points (list[tuple]): Coordinate points to be processed
+      limit (float | int): distance limitation coefficient
+      scaling (float | int): distance limit scaling factor
+
+  Returns:
+      list[tuple]: Merged coordinates
+  """
+  class VirtualPoint:
+    def __init__(self, point1: tuple, point2: tuple, limit: float):
+      self.sources = (numpy.array(point1), numpy.array(point2))
+      # 1.1. Position: midpoint between two points
+      self.point = tuple((self.sources[0] + self.sources[1])/2)
+      # 1.2. Weight: log⁡(1/(𝑑/𝑟))
+      #   1.2.1. 𝑑 : distance between two points
+      #   1.2.2. 𝑟: distance limitation coefficient
+      self.weight = numpy.log(1/(numpy.linalg.norm(self.sources[0]- self.sources[1])/limit))
+      self.sources = (tuple(self.sources[0]), tuple(self.sources[1]))
+  # 1. Generate weighted virtual points
+  virtualPoints: list[VirtualPoint] = [VirtualPoint(points[i], points[j], limit) for i in range(len(points)) for j in range(i+1, len(points))]
+  # 2. Generate point clusters using existing virtual points as reference targets
+  clusters: list[set] = []
+  for i in range(len(virtualPoints)):
+    for j in range(i+1, len(virtualPoints)):
+
+      # Join or add a new cluster
+      if virtualPoints[i].weight>0 and virtualPoints[j].weight>0 and distance(virtualPoints[i].point, virtualPoints[j].point) < scaling*limit:
+        clustered = False
+        newCluster = set(virtualPoints[i].sources) | set(virtualPoints[j].sources)
+        # Join cluster
+        for cluster in clusters:
+          if cluster.isdisjoint(newCluster):
+            cluster |= newCluster
+            clustered = True
+        # Add a new cluster
+        if not clustered:
+          clusters.append(newCluster)
+
+      # Merge associated clusters
+      i = 0
+      while i < len(clusters):
+        j = i + 1
+        while j < len(clusters):
+          if clusters[i].isdisjoint(clusters[j]):
+            j += 1
+          else:
+            clusters[i] |= clusters.pop(j)
+        i += 1
+  # 3. The virtual point weights within each point cluster are synthesized into each point weight.
+  weightClusters = []
+  for cluster in clusters:
+    cluster_list = list(cluster)
+    weighted_dict = {}
+    for i in range(len(cluster_list)):
+      weighted_dict[cluster_list[i]] = sum([VirtualPoint(cluster_list[i], cluster_list[j], limit).weight for j in range(len(cluster)) if i != j]) / len(cluster)
+    weightClusters.append(weighted_dict)
+  # 4. Calculate the center of gravity of each point cluster
+  def calculate_center_of_gravity(weighted_dict):
+    total_weight = sum(weighted_dict.values())
+    center_coordinates = [0] * len(next(iter(weighted_dict.keys())))
+    for point, weight in weighted_dict.items():
+      for i, coordinate in enumerate(point):
+        center_coordinates[i] += coordinate * (weight / total_weight)
+    return tuple(center_coordinates)
+  return [calculate_center_of_gravity(wp) for wp in weightClusters]
+
 # %%
 if __name__ == '__main__':
   device = Ti_mmWave(platform="xWR14xx", Ctrl_port_name="COM3", Data_port_name="COM4", Ctrl_port_baudrate=115200, Data_port_baudrate=921600)
@@ -303,8 +539,8 @@ if __name__ == '__main__':
   device.sensorStart(log=True)
   print("sensorStart")
 
-  # def distance(coordinate): return math.sqrt(sum(tuple(v**2 for v in coordinate)))
-  distance = lambda coordinate: math.sqrt(sum(tuple(v**2 for v in coordinate)))
+  # def length(coordinate): return math.sqrt(sum(tuple(v**2 for v in coordinate)))
+  length = lambda coordinate: math.sqrt(sum(tuple(v**2 for v in coordinate)))
 
   detectedPoints = []
 
@@ -318,10 +554,10 @@ if __name__ == '__main__':
       detectedPoints = [(DataFrame.Converter.QFormat.parse(device.data.detectedObjects.infomation.xyzQFormat, DetectedObj.x), DataFrame.Converter.QFormat.parse(device.data.detectedObjects.infomation.xyzQFormat, DetectedObj.y), DataFrame.Converter.QFormat.parse(device.data.detectedObjects.infomation.xyzQFormat, DetectedObj.z)) for DetectedObj in device.data.detectedObjects.Objects]
       detectedPoints_transposed: tuple[list[float], list[float], list[float]] = tuple(list(x) for x in zip(*detectedPoints))
       print(detectedPoints)
-      DetectionDistances = sorted([round(distance(DetectedPoint), 2) for DetectedPoint in detectedPoints])
+      DetectionDistances = sorted([round(length(DetectedPoint), 2) for DetectedPoint in detectedPoints])
       print(DetectionDistances)
       detectedCenter: tuple[float, float, float] = (sum(detectedPoints_transposed[0]) / len(detectedPoints_transposed[0]), sum(detectedPoints_transposed[1]) / len(detectedPoints_transposed[1]), sum(detectedPoints_transposed[2]) / len(detectedPoints_transposed[2]))
-      print(f"DetectionDistance: {distance(detectedCenter)}, DetectedCenter: {detectedCenter}")
+      print(f"DetectionDistance: {length(detectedCenter)}, DetectedCenter: {detectedCenter}")
     
     return device.data.CRC32
   # update_SOP()
@@ -345,10 +581,10 @@ if __name__ == '__main__':
           detectedPoints = [(DataFrame.Converter.QFormat.parse(device.data.detectedObjects.infomation.xyzQFormat, DetectedObj.x), DataFrame.Converter.QFormat.parse(device.data.detectedObjects.infomation.xyzQFormat, DetectedObj.y), DataFrame.Converter.QFormat.parse(device.data.detectedObjects.infomation.xyzQFormat, DetectedObj.z)) for DetectedObj in device.data.detectedObjects.Objects]
           detectedPoints_transposed: tuple[list[float], list[float], list[float]] = tuple(list(x) for x in zip(*detectedPoints))
           print(detectedPoints)
-          DetectionDistances = sorted([round(distance(DetectedPoint), 2) for DetectedPoint in detectedPoints])
+          DetectionDistances = sorted([round(length(DetectedPoint), 2) for DetectedPoint in detectedPoints])
           print(DetectionDistances)
           detectedCenter: tuple[float, float, float] = (sum(detectedPoints_transposed[0]) / len(detectedPoints_transposed[0]), sum(detectedPoints_transposed[1]) / len(detectedPoints_transposed[1]), sum(detectedPoints_transposed[2]) / len(detectedPoints_transposed[2]))
-          print(f"DetectionDistance: {distance(detectedCenter)}, DetectedCenter: {detectedCenter}")
+          print(f"DetectionDistance: {length(detectedCenter)}, DetectedCenter: {detectedCenter}")
 
       statusCode = tuple(statusCode[i] if statusCode[i] != 0 else enableCycle[i] for i in range(len(statusCode)))
 
@@ -383,10 +619,10 @@ if __name__ == '__main__':
             detectedPoints = [(DataFrame.Converter.QFormat.parse(device.data.detectedObjects.infomation.xyzQFormat, DetectedObj.x), DataFrame.Converter.QFormat.parse(device.data.detectedObjects.infomation.xyzQFormat, DetectedObj.y), DataFrame.Converter.QFormat.parse(device.data.detectedObjects.infomation.xyzQFormat, DetectedObj.z)) for DetectedObj in device.data.detectedObjects.Objects]
             detectedPoints_transposed: tuple[list[float], list[float], list[float]] = tuple(list(x) for x in zip(*detectedPoints)) if len(detectedPoints) != 0 else ([], [], [])
             print(detectedPoints)
-            DetectionDistances = sorted([round(distance(DetectedPoint), 2) for DetectedPoint in detectedPoints])
+            DetectionDistances = sorted([round(length(DetectedPoint), 2) for DetectedPoint in detectedPoints])
             print(DetectionDistances)
             detectedCenter: tuple[float, float, float] = (sum(detectedPoints_transposed[0]) / len(detectedPoints_transposed[0]), sum(detectedPoints_transposed[1]) / len(detectedPoints_transposed[1]), sum(detectedPoints_transposed[2]) / len(detectedPoints_transposed[2]))
-            print(f"DetectionDistance: {distance(detectedCenter)}, DetectedCenter: {detectedCenter}")
+            print(f"DetectionDistance: {length(detectedCenter)}, DetectedCenter: {detectedCenter}")
 
         statusCode = tuple(statusCode[i] if statusCode[i] != 0 else enableCycle[i] for i in range(len(statusCode)))
 
@@ -410,10 +646,10 @@ if __name__ == '__main__':
           detectedPoints = [(DataFrame.Converter.QFormat.parse(device.data.detectedObjects.infomation.xyzQFormat, DetectedObj.x), DataFrame.Converter.QFormat.parse(device.data.detectedObjects.infomation.xyzQFormat, DetectedObj.y), DataFrame.Converter.QFormat.parse(device.data.detectedObjects.infomation.xyzQFormat, DetectedObj.z)) for DetectedObj in device.data.detectedObjects.Objects]
           detectedPoints_transposed: tuple[list[float], list[float], list[float]] = tuple(list(x) for x in zip(*detectedPoints)) if len(detectedPoints) != 0 else ([], [], [])
           print(detectedPoints)
-          DetectionDistances = sorted([round(distance(DetectedPoint), 2) for DetectedPoint in detectedPoints])
+          DetectionDistances = sorted([round(length(DetectedPoint), 2) for DetectedPoint in detectedPoints])
           print(DetectionDistances)
           detectedCenter: tuple[float, float, float] = (sum(detectedPoints_transposed[0]) / len(detectedPoints_transposed[0]), sum(detectedPoints_transposed[1]) / len(detectedPoints_transposed[1]), sum(detectedPoints_transposed[2]) / len(detectedPoints_transposed[2]))
-          print(f"DetectionDistance: {distance(detectedCenter)}, DetectedCenter: {detectedCenter}")
+          print(f"DetectionDistance: {length(detectedCenter)}, DetectedCenter: {detectedCenter}")
 
     except KeyboardInterrupt: 
       device.Data_Buffering_thread_stop()
@@ -422,37 +658,102 @@ if __name__ == '__main__':
     return
   # update_continuous_Threading()
 
-  def update_3D():
-    class AxisLimit_3d:
-      class _AxisLimit:
-        def __init__(self, min: int | float = 0, max: int | float = 1):
-          self.min = min
-          self.max = max
-      def __init__(self, min: int | float = 0, max: int | float = 1, x_min: int | float | None = None, x_max: int | float | None = None, y_min: int | float | None = None, y_max: int | float | None = None, z_min: int | float | None = None, z_max: int | float | None = None) -> None:
-        self.x = AxisLimit_3d._AxisLimit(min if x_min is None else x_min, max if x_max is None else x_max)
-        self.y = AxisLimit_3d._AxisLimit(min if y_min is None else y_min, max if y_max is None else y_max)
-        self.z = AxisLimit_3d._AxisLimit(min if z_min is None else z_min, max if z_max is None else z_max)
+  class AxisLimit_3d:
+    class _AxisLimit:
+      def __init__(self, min: int | float = 0, max: int | float = 1):
+        self.min = min
+        self.max = max
+    def __init__(self, min: int | float = 0, max: int | float = 1, x_min: int | float | None = None, x_max: int | float | None = None, y_min: int | float | None = None, y_max: int | float | None = None, z_min: int | float | None = None, z_max: int | float | None = None) -> None:
+      self.x = AxisLimit_3d._AxisLimit(min if x_min is None else x_min, max if x_max is None else x_max)
+      self.y = AxisLimit_3d._AxisLimit(min if y_min is None else y_min, max if y_max is None else y_max)
+      self.z = AxisLimit_3d._AxisLimit(min if z_min is None else z_min, max if z_max is None else z_max)
 
-    detectionLimit = AxisLimit_3d(-1.5, 1.5, y_min=0, y_max=3)
+  detectionLimit = AxisLimit_3d(-1.5, 1.5, y_min=0, y_max=3)
+  
+  def update_3D():
 
     figure: matplotlib.pyplot.Figure = matplotlib.pyplot.figure()
-    axes: matplotlib.pyplot.Axes = figure.add_subplot(projection='3d')
-    axes.set_title("Detection distribution map")
 
-    axes.set(xlim3d=(detectionLimit.x.min, detectionLimit.x.max), xlabel='X')
-    axes.set(ylim3d=(detectionLimit.y.min, detectionLimit.y.max), ylabel='Y')
-    axes.set(zlim3d=(detectionLimit.z.min, detectionLimit.z.max), zlabel='Z')
-
-    def update_matplotlibAnimation_SOP(frame, scatter: matplotlib.collections.PathCollection) -> matplotlib.collections.PathCollection:
+    axes_231: matplotlib.pyplot.Axes = figure.add_subplot(231, projection='3d')
+    axes_231.set_title("Detection distribution map")
+    axes_231.set(xlim3d=(detectionLimit.x.min, detectionLimit.x.max), xlabel='X')
+    axes_231.set(ylim3d=(detectionLimit.y.min, detectionLimit.y.max), ylabel='Y')
+    axes_231.set(zlim3d=(detectionLimit.z.min, detectionLimit.z.max), zlabel='Z')
+    def update_matplotlibAnimation_SOP_231(frame, scatter: matplotlib.collections.PathCollection) -> matplotlib.collections.PathCollection:
       device.Data_Buffering_unit()
       device.Data_Parse_unit()
       if device.data is not None and device.data.iscomplete and device.data.CRC32 is not None:
         detectedPoints = [(DataFrame.Converter.QFormat.parse(device.data.detectedObjects.infomation.xyzQFormat, DetectedObj.x), DataFrame.Converter.QFormat.parse(device.data.detectedObjects.infomation.xyzQFormat, DetectedObj.y), DataFrame.Converter.QFormat.parse(device.data.detectedObjects.infomation.xyzQFormat, DetectedObj.z)) for DetectedObj in device.data.detectedObjects.Objects]
         detectedPoints_transposed: tuple[list[float], list[float], list[float]] = tuple(list(x) for x in zip(*detectedPoints)) if len(detectedPoints) != 0 else ([], [], [])
         scatter._offsets3d = detectedPoints_transposed
+    animation_231 = matplotlib.animation.FuncAnimation(fig=figure, func=update_matplotlibAnimation_SOP_231, fargs=(axes_231.scatter([], [], [], label='Detection Object'), ), interval=100)
+    axes_231.legend()
 
-    animation = matplotlib.animation.FuncAnimation(fig=figure, func=update_matplotlibAnimation_SOP, fargs=(axes.scatter([], [], [], label='Detection Object'), ), interval=100)
-    axes.legend()
+    limit = 0.3
+
+    axes_233: matplotlib.pyplot.Axes = figure.add_subplot(233, projection='3d')
+    axes_233.set_title("integration V1")
+    axes_233.set(xlim3d=(detectionLimit.x.min, detectionLimit.x.max), xlabel='X')
+    axes_233.set(ylim3d=(detectionLimit.y.min, detectionLimit.y.max), ylabel='Y')
+    axes_233.set(zlim3d=(detectionLimit.z.min, detectionLimit.z.max), zlabel='Z')
+    def update_matplotlibAnimation_SOP_233(frame, scatter: matplotlib.collections.PathCollection) -> matplotlib.collections.PathCollection:
+      device.Data_Buffering_unit()
+      device.Data_Parse_unit()
+      if device.data is not None and device.data.iscomplete and device.data.CRC32 is not None:
+        detectedPoints = [(DataFrame.Converter.QFormat.parse(device.data.detectedObjects.infomation.xyzQFormat, DetectedObj.x), DataFrame.Converter.QFormat.parse(device.data.detectedObjects.infomation.xyzQFormat, DetectedObj.y), DataFrame.Converter.QFormat.parse(device.data.detectedObjects.infomation.xyzQFormat, DetectedObj.z)) for DetectedObj in device.data.detectedObjects.Objects]
+        detectedPoints = integration_V1_universal(detectedPoints, lambda point1, point2: distance(point1, point2) < limit)
+        detectedPoints_transposed: tuple[list[float], list[float], list[float]] = tuple(list(x) for x in zip(*detectedPoints)) if len(detectedPoints) != 0 else ([], [], [])
+        scatter._offsets3d = detectedPoints_transposed
+    animation_233 = matplotlib.animation.FuncAnimation(fig=figure, func=update_matplotlibAnimation_SOP_233, fargs=(axes_233.scatter([], [], [], label='Detection Object'), ), interval=100)
+    axes_233.legend()
+
+    axes_234: matplotlib.pyplot.Axes = figure.add_subplot(234, projection='3d')
+    axes_234.set_title("integration V2.1")
+    axes_234.set(xlim3d=(detectionLimit.x.min, detectionLimit.x.max), xlabel='X')
+    axes_234.set(ylim3d=(detectionLimit.y.min, detectionLimit.y.max), ylabel='Y')
+    axes_234.set(zlim3d=(detectionLimit.z.min, detectionLimit.z.max), zlabel='Z')
+    def update_matplotlibAnimation_SOP_234(frame, scatter: matplotlib.collections.PathCollection) -> matplotlib.collections.PathCollection:
+      device.Data_Buffering_unit()
+      device.Data_Parse_unit()
+      if device.data is not None and device.data.iscomplete and device.data.CRC32 is not None:
+        detectedPoints = [(DataFrame.Converter.QFormat.parse(device.data.detectedObjects.infomation.xyzQFormat, DetectedObj.x), DataFrame.Converter.QFormat.parse(device.data.detectedObjects.infomation.xyzQFormat, DetectedObj.y), DataFrame.Converter.QFormat.parse(device.data.detectedObjects.infomation.xyzQFormat, DetectedObj.z)) for DetectedObj in device.data.detectedObjects.Objects]
+        detectedPoints = integration_V2_1(detectedPoints, limit, 1)
+        detectedPoints_transposed: tuple[list[float], list[float], list[float]] = tuple(list(x) for x in zip(*detectedPoints)) if len(detectedPoints) != 0 else ([], [], [])
+        scatter._offsets3d = detectedPoints_transposed
+    animation_234 = matplotlib.animation.FuncAnimation(fig=figure, func=update_matplotlibAnimation_SOP_234, fargs=(axes_234.scatter([], [], [], label='Detection Object'), ), interval=100)
+    axes_234.legend()
+    
+    axes_235: matplotlib.pyplot.Axes = figure.add_subplot(235, projection='3d')
+    axes_235.set_title("integration V2.2")
+    axes_235.set(xlim3d=(detectionLimit.x.min, detectionLimit.x.max), xlabel='X')
+    axes_235.set(ylim3d=(detectionLimit.y.min, detectionLimit.y.max), ylabel='Y')
+    axes_235.set(zlim3d=(detectionLimit.z.min, detectionLimit.z.max), zlabel='Z')
+    def update_matplotlibAnimation_SOP_235(frame, scatter: matplotlib.collections.PathCollection) -> matplotlib.collections.PathCollection:
+      device.Data_Buffering_unit()
+      device.Data_Parse_unit()
+      if device.data is not None and device.data.iscomplete and device.data.CRC32 is not None:
+        detectedPoints = [(DataFrame.Converter.QFormat.parse(device.data.detectedObjects.infomation.xyzQFormat, DetectedObj.x), DataFrame.Converter.QFormat.parse(device.data.detectedObjects.infomation.xyzQFormat, DetectedObj.y), DataFrame.Converter.QFormat.parse(device.data.detectedObjects.infomation.xyzQFormat, DetectedObj.z)) for DetectedObj in device.data.detectedObjects.Objects]
+        detectedPoints = integration_V2_2(detectedPoints, limit, 1)
+        detectedPoints_transposed: tuple[list[float], list[float], list[float]] = tuple(list(x) for x in zip(*detectedPoints)) if len(detectedPoints) != 0 else ([], [], [])
+        scatter._offsets3d = detectedPoints_transposed
+    animation_235 = matplotlib.animation.FuncAnimation(fig=figure, func=update_matplotlibAnimation_SOP_235, fargs=(axes_235.scatter([], [], [], label='Detection Object'), ), interval=100)
+    axes_235.legend()
+
+    axes_236: matplotlib.pyplot.Axes = figure.add_subplot(236, projection='3d')
+    axes_236.set_title("integration V2.3")
+    axes_236.set(xlim3d=(detectionLimit.x.min, detectionLimit.x.max), xlabel='X')
+    axes_236.set(ylim3d=(detectionLimit.y.min, detectionLimit.y.max), ylabel='Y')
+    axes_236.set(zlim3d=(detectionLimit.z.min, detectionLimit.z.max), zlabel='Z')
+    def update_matplotlibAnimation_SOP_236(frame, scatter: matplotlib.collections.PathCollection) -> matplotlib.collections.PathCollection:
+      device.Data_Buffering_unit()
+      device.Data_Parse_unit()
+      if device.data is not None and device.data.iscomplete and device.data.CRC32 is not None:
+        detectedPoints = [(DataFrame.Converter.QFormat.parse(device.data.detectedObjects.infomation.xyzQFormat, DetectedObj.x), DataFrame.Converter.QFormat.parse(device.data.detectedObjects.infomation.xyzQFormat, DetectedObj.y), DataFrame.Converter.QFormat.parse(device.data.detectedObjects.infomation.xyzQFormat, DetectedObj.z)) for DetectedObj in device.data.detectedObjects.Objects]
+        detectedPoints = integration_V2_3(detectedPoints, limit, 1)
+        detectedPoints_transposed: tuple[list[float], list[float], list[float]] = tuple(list(x) for x in zip(*detectedPoints)) if len(detectedPoints) != 0 else ([], [], [])
+        scatter._offsets3d = detectedPoints_transposed
+    animation_236 = matplotlib.animation.FuncAnimation(fig=figure, func=update_matplotlibAnimation_SOP_236, fargs=(axes_236.scatter([], [], [], label='Detection Object'), ), interval=100)
+    axes_236.legend()
 
     matplotlib.pyplot.show()
   update_3D()
