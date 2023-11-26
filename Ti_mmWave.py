@@ -2,6 +2,7 @@
 import time
 import math
 import threading
+# import os
 
 import serial # pyserial-3.5
 import numpy # numpy-1.26.0
@@ -11,6 +12,7 @@ import matplotlib.animation
 
 import Log
 import SerialTool
+import Integration
 
 import Configuration
 import DataFrame
@@ -159,20 +161,6 @@ class Ti_mmWave:
         pass
       self._DataPort_inUse_ = False
 
-  # def parseData(self, log: bool=False) -> None:
-  #   """Parse sensed data.
-
-  #   Experimental product.
-
-  #   TODO: Continuously loading sensing data. (Use `threading.Thread` to drive `self.buffer += bytearray(self.Data_port.read(self.Data_port.in_waiting))`)
-  #   TODO: Continuously parse sensing data. (Use `threading.Thread` to drive `self.data.parse(dataByte=self.buffer, log=log)`)
-
-  #   Args:
-  #     log (bool, optional): _description_. Defaults to False.
-  #   """
-  #   self.buffer += bytearray(self.Data_port.read(self.Data_port.in_waiting))
-  #   self.data.parse(dataByte=self.buffer, log=log)
-
   def Ctrl_Load_unit(self, commandLine: str):
     commandLine = commandLine.strip()
     if commandLine[0] != '%': 
@@ -219,13 +207,10 @@ class Ti_mmWave:
     while self._DataPort_inUse_: pass # wait for dataport reading
     else: 
       self._DataPort_inUse_ = True
-      # print("Buffering: self.buffer.length:", len(self.buffer))
       self.buffer = self.buffer + bytearray(self.Data_port.read(self.Data_port.in_waiting))
-      # print("Buffering: self.buffer.length:", len(self.buffer))
       self._DataPort_inUse_ = False
   def Data_Buffering_continuous(self, timeInterval: int | float | None = None) -> None:
     try:
-      # while True: 
       while self.Buffering_active: 
         self.Data_Buffering_unit()
         if timeInterval is not None: time.sleep(timeInterval)
@@ -264,16 +249,12 @@ class Ti_mmWave:
         if Parse_interrupt: self.Data_Parse_thread_start()
 
   def Data_Parse_unit(self, log: str | None = None) -> None:
-    # print("Parse: self.buffer.length:", len(self.buffer))
     data, index = DataFrame.DataFrame.parse(self.buffer, log)
-    # print("data: {}, index: {}".format(data, index))
     if data is not None: 
       self.data = data
       self.buffer = self.buffer[index:]
-    # print("Parse: self.buffer.length:", len(self.buffer))
   def Data_Parse_continuous(self, timeInterval: int | float | None = None, log: str | None = None) -> None:
     try:
-      # while True: 
       while self.Parse_active: 
         self.Data_Parse_unit(log)
         if timeInterval is not None: time.sleep(timeInterval)
@@ -287,242 +268,6 @@ class Ti_mmWave:
   def Data_Parse_thread_stop(self):
     self.Parse_active = False
 
-# Calculate the distance between two points
-distance = lambda point1, point2: float(numpy.linalg.norm(numpy.array(point1) - numpy.array(point2)))
-# Calculate the center point of a cluster
-center = lambda cluster: tuple(numpy.array([sum(vL) for vL in numpy.transpose(numpy.array(list(cluster)))]) / len(cluster))
-
-def integration_V1_universal(points: list, rule, point=lambda point: point) -> list[tuple]:
-  """merge adjacent points into one point
-
-    1. Iterate through each point in the input list
-    2. Check if the point belongs to any existing cluster based on the rule
-    3. If the point does not belong to any cluster, create a new cluster
-    4. If the point belongs to multiple clusters, merge those clusters
-    5. Calculate the center point as the average of its points
-
-  Args:
-      points (list): Coordinate points to be processed
-      rule (_type_): lambda
-      point (_type_, optional): method to get coordinates. Defaults to `lambda point: point`.
-
-  Returns:
-      list[tuple]: Merged coordinates
-  """
-  clusters: list[set] = []
-  
-  for i in range(len(points)):
-    for j in range(i+1, len(points)):
-      # Join or add a new cluster
-      if rule(points[i], points[j]):
-        clustered = False
-        newCluster = {point(points[i]), point(points[j])}
-        # Join cluster
-        for cluster in clusters:
-          if not cluster.isdisjoint(newCluster):
-            cluster |= newCluster
-            clustered = True
-            break  # Exit the loop after merging the cluster
-        # Add a new cluster
-        if not clustered:
-          clusters.append(newCluster)
-
-  # Merge associated clusters
-  i = 0
-  while i < len(clusters):
-    j = i + 1
-    while j < len(clusters):
-      if clusters[i].isdisjoint(clusters[j]):
-        j += 1
-      else:
-        clusters[i] |= clusters.pop(j)
-    i += 1
-
-  # Calculate the center point for each cluster
-  return [center(cluster) for cluster in clusters if cluster]
-
-def integration_V2_1(points: list[tuple], limit: float | int, scaling: float | int) -> list[tuple]:
-  """Integration and filtering of detection points
-
-    1. Generate weighted virtual points
-      1.1. Position: midpoint between two points
-      1.2. Weight: log⁡(1/(𝑑/𝑟))
-        1.2.1. 𝑑 : distance between two points
-        1.2.2. 𝑟: distance limitation coefficient
-    2. Generate virtual point clusters using existing virtual points as reference targets
-      2.1. Point cluster: The weight of the generated virtual points is greater than 0, and the distance between virtual points is less than α𝑟
-        2.1.1. α	distance limit scaling factor
-    3. Merge virtual point cluster to generate merged points
-
-  Args:
-      points (list[tuple]): Coordinate points to be processed
-      limit (float | int): distance limitation coefficient
-      scaling (float | int): distance limit scaling factor
-
-  Returns:
-      list[tuple]: Merged coordinates
-  """
-  class VirtualPoint:
-    def __init__(self, point1: tuple, point2: tuple, limit: float):
-      self.sources = (numpy.array(point1), numpy.array(point2))
-      # 1.1. Position: midpoint between two points
-      self.point = tuple((self.sources[0] + self.sources[1])/2)
-      # 1.2. Weight: log⁡(1/(𝑑/𝑟))
-      #   1.2.1. 𝑑 : distance between two points
-      #   1.2.2. 𝑟: distance limitation coefficient
-      self.weight = numpy.log(1/(numpy.linalg.norm(self.sources[0]- self.sources[1])/limit))
-  # 1. Generate weighted virtual points # NOTE: not full
-  virtualPoints: list[VirtualPoint] = [VirtualPoint(points[i], points[j], limit) for i in range(len(points)) for j in range(i+1, len(points))]
-  # 2. Generate virtual point clusters using existing virtual points as reference targets
-  # 3. Merge virtual point cluster to generate merged points
-  virtualClusterCenters = integration_V1_universal(virtualPoints, lambda point1, point2: point1.weight>0 and point2.weight>0 and distance(point1.point, point2.point) < scaling*limit, lambda virtualPoint: virtualPoint.point)
-  return virtualClusterCenters
-
-def integration_V2_2(points: list[tuple], limit: float | int, scaling: float | int) -> list[tuple]:
-  """Integration and filtering of detection points
-
-    1. Generate weighted virtual points
-      1.1. Position: midpoint between two points
-      1.2. Weight: log⁡(1/(𝑑/𝑟))
-        1.2.1. 𝑑 : distance between two points
-        1.2.2. 𝑟: distance limitation coefficient
-    2. Generate point clusters using existing virtual points as reference targets
-      2.1. Point clusters: The weight of the generated virtual points is greater than 0, and the distance between virtual points is less than α𝑟
-        2.1.1. α	distance limit scaling factor
-    3. Merge point clusters to generate merged points
-
-  Args:
-      points (list[tuple]): Coordinate points to be processed
-      limit (float | int): distance limitation coefficient
-      scaling (float | int): distance limit scaling factor
-
-  Returns:
-      list[tuple]: Merged coordinates
-  """
-  class VirtualPoint:
-    def __init__(self, point1: tuple, point2: tuple, limit: float):
-      self.sources = (numpy.array(point1), numpy.array(point2))
-      # 1.1. Position: midpoint between two points
-      self.point = tuple((self.sources[0] + self.sources[1])/2)
-      # 1.2. Weight: log⁡(1/(𝑑/𝑟))
-      #   1.2.1. 𝑑 : distance between two points
-      #   1.2.2. 𝑟: distance limitation coefficient
-      self.weight = numpy.log(1/(numpy.linalg.norm(self.sources[0]- self.sources[1])/limit))
-      self.sources = (tuple(self.sources[0]), tuple(self.sources[1]))
-  # 1. Generate weighted virtual points
-  virtualPoints: list[VirtualPoint] = [VirtualPoint(points[i], points[j], limit) for i in range(len(points)) for j in range(i+1, len(points))]
-  # 2. Generate point clusters using existing virtual points as reference targets
-  clusters: list[set] = []
-  for i in range(len(virtualPoints)):
-    for j in range(i+1, len(virtualPoints)):
-
-      # Join or add a new cluster
-      if virtualPoints[i].weight>0 and virtualPoints[j].weight>0 and distance(virtualPoints[i].point, virtualPoints[j].point) < scaling*limit:
-        clustered = False
-        newCluster = set(virtualPoints[i].sources) | set(virtualPoints[j].sources)
-        # Join cluster
-        for cluster in clusters:
-          if cluster.isdisjoint(newCluster):
-            cluster |= newCluster
-            clustered = True
-        # Add a new cluster
-        if not clustered:
-          clusters.append(newCluster)
-
-      # Merge associated clusters
-      i = 0
-      while i < len(clusters):
-        j = i + 1
-        while j < len(clusters):
-          if clusters[i].isdisjoint(clusters[j]):
-            j += 1
-          else:
-            clusters[i] |= clusters.pop(j)
-        i += 1
-  # 3. Merge point clusters to generate merged points
-  return [center(cluster) for cluster in clusters]
-
-def integration_V2_3(points: list[tuple], limit: float | int, scaling: float | int) -> list[tuple]:
-  """Integration and filtering of detection points
-
-    1. Generate weighted virtual points
-      1.1. Position: midpoint between two points
-      1.2. Weight: log⁡(1/(𝑑/𝑟))
-        1.2.1. 𝑑 : distance between two points
-        1.2.2. 𝑟 : distance limitation coefficient
-    2. Generate point clusters using existing virtual points as reference targets
-      2.1. Point cluster: The weight of the generated virtual points is greater than 0, and the distance between virtual points is less than α𝑟
-        2.1.1. α	distance limit scaling factor
-    3. The virtual point weights within each point cluster are synthesized into each point weight.
-      3.1. Weight: virtual point weight average
-    4. Calculate the center of gravity of each point cluster
-
-  Args:
-      points (list[tuple]): Coordinate points to be processed
-      limit (float | int): distance limitation coefficient
-      scaling (float | int): distance limit scaling factor
-
-  Returns:
-      list[tuple]: Merged coordinates
-  """
-  class VirtualPoint:
-    def __init__(self, point1: tuple, point2: tuple, limit: float):
-      self.sources = (numpy.array(point1), numpy.array(point2))
-      # 1.1. Position: midpoint between two points
-      self.point = tuple((self.sources[0] + self.sources[1])/2)
-      # 1.2. Weight: log⁡(1/(𝑑/𝑟))
-      #   1.2.1. 𝑑 : distance between two points
-      #   1.2.2. 𝑟: distance limitation coefficient
-      self.weight = numpy.log(1/(numpy.linalg.norm(self.sources[0]- self.sources[1])/limit))
-      self.sources = (tuple(self.sources[0]), tuple(self.sources[1]))
-  # 1. Generate weighted virtual points
-  virtualPoints: list[VirtualPoint] = [VirtualPoint(points[i], points[j], limit) for i in range(len(points)) for j in range(i+1, len(points))]
-  # 2. Generate point clusters using existing virtual points as reference targets
-  clusters: list[set] = []
-  for i in range(len(virtualPoints)):
-    for j in range(i+1, len(virtualPoints)):
-
-      # Join or add a new cluster
-      if virtualPoints[i].weight>0 and virtualPoints[j].weight>0 and distance(virtualPoints[i].point, virtualPoints[j].point) < scaling*limit:
-        clustered = False
-        newCluster = set(virtualPoints[i].sources) | set(virtualPoints[j].sources)
-        # Join cluster
-        for cluster in clusters:
-          if cluster.isdisjoint(newCluster):
-            cluster |= newCluster
-            clustered = True
-        # Add a new cluster
-        if not clustered:
-          clusters.append(newCluster)
-
-      # Merge associated clusters
-      i = 0
-      while i < len(clusters):
-        j = i + 1
-        while j < len(clusters):
-          if clusters[i].isdisjoint(clusters[j]):
-            j += 1
-          else:
-            clusters[i] |= clusters.pop(j)
-        i += 1
-  # 3. The virtual point weights within each point cluster are synthesized into each point weight.
-  weightClusters = []
-  for cluster in clusters:
-    cluster_list = list(cluster)
-    weighted_dict = {}
-    for i in range(len(cluster_list)):
-      weighted_dict[cluster_list[i]] = sum([VirtualPoint(cluster_list[i], cluster_list[j], limit).weight for j in range(len(cluster)) if i != j]) / len(cluster)
-    weightClusters.append(weighted_dict)
-  # 4. Calculate the center of gravity of each point cluster
-  def calculate_center_of_gravity(weighted_dict):
-    total_weight = sum(weighted_dict.values())
-    center_coordinates = [0] * len(next(iter(weighted_dict.keys())))
-    for point, weight in weighted_dict.items():
-      for i, coordinate in enumerate(point):
-        center_coordinates[i] += coordinate * (weight / total_weight)
-    return tuple(center_coordinates)
-  return [calculate_center_of_gravity(wp) for wp in weightClusters]
-
 # %%
 if __name__ == '__main__':
   device = Ti_mmWave(platform="xWR14xx", Ctrl_port_name="COM3", Data_port_name="COM4", Ctrl_port_baudrate=115200, Data_port_baudrate=921600)
@@ -534,7 +279,7 @@ if __name__ == '__main__':
   device.Ctrl_Load_file("Profile\Profile-3.cfg")
   device.config.set_CfarRangeThreshold_dB(threshold_dB=12)
   device.config.set_RemoveStaticClutter(enabled=True)
-  device.config.set_FramePeriodicity(FramePeriodicity_ms=200)
+  device.config.set_FramePeriodicity(FramePeriodicity_ms=100) # get as `device.config.parameter.framePeriodicity`
   device.Ctrl_Send()
   device.sensorStart(log=True)
   print("sensorStart")
@@ -672,90 +417,149 @@ if __name__ == '__main__':
   
   def update_3D():
 
-    figure: matplotlib.pyplot.Figure = matplotlib.pyplot.figure()
+    device.Data_Buffering_thread_start()
+    device.Data_Parse_thread_start()
 
-    axes_231: matplotlib.pyplot.Axes = figure.add_subplot(231, projection='3d')
-    axes_231.set_title("Detection distribution map")
-    axes_231.set(xlim3d=(detectionLimit.x.min, detectionLimit.x.max), xlabel='X')
-    axes_231.set(ylim3d=(detectionLimit.y.min, detectionLimit.y.max), ylabel='Y')
-    axes_231.set(zlim3d=(detectionLimit.z.min, detectionLimit.z.max), zlabel='Z')
-    def update_matplotlibAnimation_SOP_231(frame, scatter: matplotlib.collections.PathCollection) -> matplotlib.collections.PathCollection:
-      device.Data_Buffering_unit()
-      device.Data_Parse_unit()
-      if device.data is not None and device.data.iscomplete and device.data.CRC32 is not None:
-        detectedPoints = [(DataFrame.Converter.QFormat.parse(device.data.detectedObjects.infomation.xyzQFormat, DetectedObj.x), DataFrame.Converter.QFormat.parse(device.data.detectedObjects.infomation.xyzQFormat, DetectedObj.y), DataFrame.Converter.QFormat.parse(device.data.detectedObjects.infomation.xyzQFormat, DetectedObj.z)) for DetectedObj in device.data.detectedObjects.Objects]
-        detectedPoints_transposed: tuple[list[float], list[float], list[float]] = tuple(list(x) for x in zip(*detectedPoints)) if len(detectedPoints) != 0 else ([], [], [])
-        scatter._offsets3d = detectedPoints_transposed
-    animation_231 = matplotlib.animation.FuncAnimation(fig=figure, func=update_matplotlibAnimation_SOP_231, fargs=(axes_231.scatter([], [], [], label='Detection Object'), ), interval=100)
-    axes_231.legend()
+    def get_detectedPoints(device: Ti_mmWave) -> list[tuple]:
+      return [(DataFrame.Converter.QFormat.parse(device.data.detectedObjects.infomation.xyzQFormat, DetectedObj.x), DataFrame.Converter.QFormat.parse(device.data.detectedObjects.infomation.xyzQFormat, DetectedObj.y), DataFrame.Converter.QFormat.parse(device.data.detectedObjects.infomation.xyzQFormat, DetectedObj.z)) for DetectedObj in device.data.detectedObjects.Objects]
 
-    limit = 0.3
+    def matplotlib_animation_V1(limit: int|float):
+      figure: matplotlib.pyplot.Figure = matplotlib.pyplot.figure()
 
-    axes_233: matplotlib.pyplot.Axes = figure.add_subplot(233, projection='3d')
-    axes_233.set_title("integration V1")
-    axes_233.set(xlim3d=(detectionLimit.x.min, detectionLimit.x.max), xlabel='X')
-    axes_233.set(ylim3d=(detectionLimit.y.min, detectionLimit.y.max), ylabel='Y')
-    axes_233.set(zlim3d=(detectionLimit.z.min, detectionLimit.z.max), zlabel='Z')
-    def update_matplotlibAnimation_SOP_233(frame, scatter: matplotlib.collections.PathCollection) -> matplotlib.collections.PathCollection:
-      device.Data_Buffering_unit()
-      device.Data_Parse_unit()
-      if device.data is not None and device.data.iscomplete and device.data.CRC32 is not None:
-        detectedPoints = [(DataFrame.Converter.QFormat.parse(device.data.detectedObjects.infomation.xyzQFormat, DetectedObj.x), DataFrame.Converter.QFormat.parse(device.data.detectedObjects.infomation.xyzQFormat, DetectedObj.y), DataFrame.Converter.QFormat.parse(device.data.detectedObjects.infomation.xyzQFormat, DetectedObj.z)) for DetectedObj in device.data.detectedObjects.Objects]
-        detectedPoints = integration_V1_universal(detectedPoints, lambda point1, point2: distance(point1, point2) < limit)
-        detectedPoints_transposed: tuple[list[float], list[float], list[float]] = tuple(list(x) for x in zip(*detectedPoints)) if len(detectedPoints) != 0 else ([], [], [])
-        scatter._offsets3d = detectedPoints_transposed
-    animation_233 = matplotlib.animation.FuncAnimation(fig=figure, func=update_matplotlibAnimation_SOP_233, fargs=(axes_233.scatter([], [], [], label='Detection Object'), ), interval=100)
-    axes_233.legend()
+      axes_231: matplotlib.pyplot.Axes = figure.add_subplot(231, projection='3d')
+      axes_231.set_title("Detection distribution map")
+      axes_231.set(xlim3d=(detectionLimit.x.min, detectionLimit.x.max), xlabel='X')
+      axes_231.set(ylim3d=(detectionLimit.y.min, detectionLimit.y.max), ylabel='Y')
+      axes_231.set(zlim3d=(detectionLimit.z.min, detectionLimit.z.max), zlabel='Z')
+      def update_matplotlibAnimation_SOP_231(frame, scatter: matplotlib.collections.PathCollection) -> matplotlib.collections.PathCollection:
+        scatter._offsets3d = tuple(list(x) for x in zip(*get_detectedPoints(device))) if len(get_detectedPoints(device)) != 0 else ([], [], [])
+      animation_231 = matplotlib.animation.FuncAnimation(fig=figure, func=update_matplotlibAnimation_SOP_231, fargs=(axes_231.scatter([], [], [], label='Detection Object'), ), interval=device.config.parameter.framePeriodicity, cache_frame_data=False)
+      axes_231.legend()
 
-    axes_234: matplotlib.pyplot.Axes = figure.add_subplot(234, projection='3d')
-    axes_234.set_title("integration V2.1")
-    axes_234.set(xlim3d=(detectionLimit.x.min, detectionLimit.x.max), xlabel='X')
-    axes_234.set(ylim3d=(detectionLimit.y.min, detectionLimit.y.max), ylabel='Y')
-    axes_234.set(zlim3d=(detectionLimit.z.min, detectionLimit.z.max), zlabel='Z')
-    def update_matplotlibAnimation_SOP_234(frame, scatter: matplotlib.collections.PathCollection) -> matplotlib.collections.PathCollection:
-      device.Data_Buffering_unit()
-      device.Data_Parse_unit()
-      if device.data is not None and device.data.iscomplete and device.data.CRC32 is not None:
-        detectedPoints = [(DataFrame.Converter.QFormat.parse(device.data.detectedObjects.infomation.xyzQFormat, DetectedObj.x), DataFrame.Converter.QFormat.parse(device.data.detectedObjects.infomation.xyzQFormat, DetectedObj.y), DataFrame.Converter.QFormat.parse(device.data.detectedObjects.infomation.xyzQFormat, DetectedObj.z)) for DetectedObj in device.data.detectedObjects.Objects]
-        detectedPoints = integration_V2_1(detectedPoints, limit, 1)
-        detectedPoints_transposed: tuple[list[float], list[float], list[float]] = tuple(list(x) for x in zip(*detectedPoints)) if len(detectedPoints) != 0 else ([], [], [])
-        scatter._offsets3d = detectedPoints_transposed
-    animation_234 = matplotlib.animation.FuncAnimation(fig=figure, func=update_matplotlibAnimation_SOP_234, fargs=(axes_234.scatter([], [], [], label='Detection Object'), ), interval=100)
-    axes_234.legend()
-    
-    axes_235: matplotlib.pyplot.Axes = figure.add_subplot(235, projection='3d')
-    axes_235.set_title("integration V2.2")
-    axes_235.set(xlim3d=(detectionLimit.x.min, detectionLimit.x.max), xlabel='X')
-    axes_235.set(ylim3d=(detectionLimit.y.min, detectionLimit.y.max), ylabel='Y')
-    axes_235.set(zlim3d=(detectionLimit.z.min, detectionLimit.z.max), zlabel='Z')
-    def update_matplotlibAnimation_SOP_235(frame, scatter: matplotlib.collections.PathCollection) -> matplotlib.collections.PathCollection:
-      device.Data_Buffering_unit()
-      device.Data_Parse_unit()
-      if device.data is not None and device.data.iscomplete and device.data.CRC32 is not None:
-        detectedPoints = [(DataFrame.Converter.QFormat.parse(device.data.detectedObjects.infomation.xyzQFormat, DetectedObj.x), DataFrame.Converter.QFormat.parse(device.data.detectedObjects.infomation.xyzQFormat, DetectedObj.y), DataFrame.Converter.QFormat.parse(device.data.detectedObjects.infomation.xyzQFormat, DetectedObj.z)) for DetectedObj in device.data.detectedObjects.Objects]
-        detectedPoints = integration_V2_2(detectedPoints, limit, 1)
-        detectedPoints_transposed: tuple[list[float], list[float], list[float]] = tuple(list(x) for x in zip(*detectedPoints)) if len(detectedPoints) != 0 else ([], [], [])
-        scatter._offsets3d = detectedPoints_transposed
-    animation_235 = matplotlib.animation.FuncAnimation(fig=figure, func=update_matplotlibAnimation_SOP_235, fargs=(axes_235.scatter([], [], [], label='Detection Object'), ), interval=100)
-    axes_235.legend()
+      axes_233: matplotlib.pyplot.Axes = figure.add_subplot(233, projection='3d')
+      axes_233.set_title("integration V1")
+      axes_233.set(xlim3d=(detectionLimit.x.min, detectionLimit.x.max), xlabel='X')
+      axes_233.set(ylim3d=(detectionLimit.y.min, detectionLimit.y.max), ylabel='Y')
+      axes_233.set(zlim3d=(detectionLimit.z.min, detectionLimit.z.max), zlabel='Z')
+      def update_matplotlibAnimation_SOP_233(frame, scatter: matplotlib.collections.PathCollection) -> matplotlib.collections.PathCollection:
+        detectedPoints_ = Integration.Calculator.cluster_centers(Integration.clustering_V1(get_detectedPoints(device), limit))
+        scatter._offsets3d = tuple(list(x) for x in zip(*detectedPoints_)) if len(detectedPoints_) != 0 else ([], [], [])
+      animation_233 = matplotlib.animation.FuncAnimation(fig=figure, func=update_matplotlibAnimation_SOP_233, fargs=(axes_233.scatter([], [], [], label='Detection Object'), ), interval=device.config.parameter.framePeriodicity, cache_frame_data=False)
+      axes_233.legend()
 
-    axes_236: matplotlib.pyplot.Axes = figure.add_subplot(236, projection='3d')
-    axes_236.set_title("integration V2.3")
-    axes_236.set(xlim3d=(detectionLimit.x.min, detectionLimit.x.max), xlabel='X')
-    axes_236.set(ylim3d=(detectionLimit.y.min, detectionLimit.y.max), ylabel='Y')
-    axes_236.set(zlim3d=(detectionLimit.z.min, detectionLimit.z.max), zlabel='Z')
-    def update_matplotlibAnimation_SOP_236(frame, scatter: matplotlib.collections.PathCollection) -> matplotlib.collections.PathCollection:
-      device.Data_Buffering_unit()
-      device.Data_Parse_unit()
-      if device.data is not None and device.data.iscomplete and device.data.CRC32 is not None:
-        detectedPoints = [(DataFrame.Converter.QFormat.parse(device.data.detectedObjects.infomation.xyzQFormat, DetectedObj.x), DataFrame.Converter.QFormat.parse(device.data.detectedObjects.infomation.xyzQFormat, DetectedObj.y), DataFrame.Converter.QFormat.parse(device.data.detectedObjects.infomation.xyzQFormat, DetectedObj.z)) for DetectedObj in device.data.detectedObjects.Objects]
-        detectedPoints = integration_V2_3(detectedPoints, limit, 1)
-        detectedPoints_transposed: tuple[list[float], list[float], list[float]] = tuple(list(x) for x in zip(*detectedPoints)) if len(detectedPoints) != 0 else ([], [], [])
-        scatter._offsets3d = detectedPoints_transposed
-    animation_236 = matplotlib.animation.FuncAnimation(fig=figure, func=update_matplotlibAnimation_SOP_236, fargs=(axes_236.scatter([], [], [], label='Detection Object'), ), interval=100)
-    axes_236.legend()
+      axes_234: matplotlib.pyplot.Axes = figure.add_subplot(234, projection='3d')
+      axes_234.set_title("integration V2.1")
+      axes_234.set(xlim3d=(detectionLimit.x.min, detectionLimit.x.max), xlabel='X')
+      axes_234.set(ylim3d=(detectionLimit.y.min, detectionLimit.y.max), ylabel='Y')
+      axes_234.set(zlim3d=(detectionLimit.z.min, detectionLimit.z.max), zlabel='Z')
+      def update_matplotlibAnimation_SOP_234(frame, scatter: matplotlib.collections.PathCollection) -> matplotlib.collections.PathCollection:
+        detectedPoints_ = Integration.Calculator.cluster_centers(Integration.clustering_V2_1(get_detectedPoints(device), limit, 0.8))
+        scatter._offsets3d = tuple(list(x) for x in zip(*detectedPoints_)) if len(detectedPoints_) != 0 else ([], [], [])
+      animation_234 = matplotlib.animation.FuncAnimation(fig=figure, func=update_matplotlibAnimation_SOP_234, fargs=(axes_234.scatter([], [], [], label='Detection Object'), ), interval=device.config.parameter.framePeriodicity, cache_frame_data=False)
+      axes_234.legend()
+      
+      axes_235: matplotlib.pyplot.Axes = figure.add_subplot(235, projection='3d')
+      axes_235.set_title("integration V2.2")
+      axes_235.set(xlim3d=(detectionLimit.x.min, detectionLimit.x.max), xlabel='X')
+      axes_235.set(ylim3d=(detectionLimit.y.min, detectionLimit.y.max), ylabel='Y')
+      axes_235.set(zlim3d=(detectionLimit.z.min, detectionLimit.z.max), zlabel='Z')
+      def update_matplotlibAnimation_SOP_235(frame, scatter: matplotlib.collections.PathCollection) -> matplotlib.collections.PathCollection:
+        detectedPoints_ = Integration.Calculator.cluster_centers(Integration.clustering_V2_2(get_detectedPoints(device), limit, 0.8))
+        scatter._offsets3d = tuple(list(x) for x in zip(*detectedPoints_)) if len(detectedPoints_) != 0 else ([], [], [])
+      animation_235 = matplotlib.animation.FuncAnimation(fig=figure, func=update_matplotlibAnimation_SOP_235, fargs=(axes_235.scatter([], [], [], label='Detection Object'), ), interval=device.config.parameter.framePeriodicity, cache_frame_data=False)
+      axes_235.legend()
 
-    matplotlib.pyplot.show()
+      axes_236: matplotlib.pyplot.Axes = figure.add_subplot(236, projection='3d')
+      axes_236.set_title("integration V2.3")
+      axes_236.set(xlim3d=(detectionLimit.x.min, detectionLimit.x.max), xlabel='X')
+      axes_236.set(ylim3d=(detectionLimit.y.min, detectionLimit.y.max), ylabel='Y')
+      axes_236.set(zlim3d=(detectionLimit.z.min, detectionLimit.z.max), zlabel='Z')
+      def update_matplotlibAnimation_SOP_236(frame, scatter: matplotlib.collections.PathCollection) -> matplotlib.collections.PathCollection:
+        detectedPoints_ = Integration.Calculator.cluster_centers_of_gravity(Integration.clustering_V2_2(get_detectedPoints(device), limit, 0.8, withWeight=True))
+        scatter._offsets3d = tuple(list(x) for x in zip(*detectedPoints_)) if len(detectedPoints_) != 0 else ([], [], [])
+      animation_236 = matplotlib.animation.FuncAnimation(fig=figure, func=update_matplotlibAnimation_SOP_236, fargs=(axes_236.scatter([], [], [], label='Detection Object'), ), interval=device.config.parameter.framePeriodicity, cache_frame_data=False)
+      axes_236.legend()
+
+      axes_232: matplotlib.pyplot.Axes = figure.add_subplot(232, projection='3d')
+      axes_232.set_title("integration")
+      axes_232.set(xlim3d=(detectionLimit.x.min, detectionLimit.x.max), xlabel='X')
+      axes_232.set(ylim3d=(detectionLimit.y.min, detectionLimit.y.max), ylabel='Y')
+      axes_232.set(zlim3d=(detectionLimit.z.min, detectionLimit.z.max), zlabel='Z')
+      def update_matplotlibAnimation_SOP_232(frame, scatter: matplotlib.collections.PathCollection) -> matplotlib.collections.PathCollection:
+        detectedPoints_ = Integration.Calculator.cluster_centers(Integration.pairing([detectedPoints, 
+                    Integration.Calculator.cluster_centers(Integration.clustering_V1(get_detectedPoints(device), limit)), 
+                    Integration.Calculator.cluster_centers(Integration.clustering_V2_1(get_detectedPoints(device), limit, 0.8)), 
+                    Integration.Calculator.cluster_centers(Integration.clustering_V2_2(get_detectedPoints(device), limit, 0.8)), 
+                    Integration.Calculator.cluster_centers_of_gravity(Integration.clustering_V2_2(get_detectedPoints(device), limit, 0.8, withWeight=True)) ], limit))
+        scatter._offsets3d = tuple(list(x) for x in zip(*detectedPoints_)) if len(detectedPoints_) != 0 else ([], [], [])
+      animation_232 = matplotlib.animation.FuncAnimation(fig=figure, func=update_matplotlibAnimation_SOP_232, fargs=(axes_232.scatter([], [], [], label='Detection Object'), ), interval=device.config.parameter.framePeriodicity, cache_frame_data=False)
+      axes_232.legend()
+
+      matplotlib.pyplot.show()
+
+    def matplotlib_animation_V2(limit: int|float):
+      figure: matplotlib.pyplot.Figure = matplotlib.pyplot.figure()
+
+      axes_121: matplotlib.pyplot.Axes = figure.add_subplot(121, projection='3d')
+      axes_121.set_title("Detection distribution map")
+      axes_121.set(xlim3d=(detectionLimit.x.min, detectionLimit.x.max), xlabel='X')
+      axes_121.set(ylim3d=(detectionLimit.y.min, detectionLimit.y.max), ylabel='Y')
+      axes_121.set(zlim3d=(detectionLimit.z.min, detectionLimit.z.max), zlabel='Z')
+      def update_matplotlibAnimation_SOP_121(frame, scatter: matplotlib.collections.PathCollection) -> matplotlib.collections.PathCollection:
+        scatter._offsets3d = tuple(list(x) for x in zip(*get_detectedPoints(device))) if len(get_detectedPoints(device)) != 0 else ([], [], [])
+      animation_121 = matplotlib.animation.FuncAnimation(fig=figure, func=update_matplotlibAnimation_SOP_121, fargs=(axes_121.scatter([], [], [], label='Detection Object'), ), interval=device.config.parameter.framePeriodicity, cache_frame_data=False)
+      axes_121.legend()
+
+      axes_122: matplotlib.pyplot.Axes = figure.add_subplot(122, projection='3d')
+      axes_122.set_title("integration")
+      axes_122.set(xlim3d=(detectionLimit.x.min, detectionLimit.x.max), xlabel='X')
+      axes_122.set(ylim3d=(detectionLimit.y.min, detectionLimit.y.max), ylabel='Y')
+      axes_122.set(zlim3d=(detectionLimit.z.min, detectionLimit.z.max), zlabel='Z')
+      def update_matplotlibAnimation_SOP_122(frame, scatter: matplotlib.collections.PathCollection) -> matplotlib.collections.PathCollection:
+        detectedPoints_ = Integration.Calculator.cluster_centers(Integration.pairing([detectedPoints, 
+                    Integration.Calculator.cluster_centers(Integration.clustering_V1(get_detectedPoints(device), limit)), 
+                    Integration.Calculator.cluster_centers(Integration.clustering_V2_1(get_detectedPoints(device), limit, 0.8)), 
+                    Integration.Calculator.cluster_centers(Integration.clustering_V2_2(get_detectedPoints(device), limit, 0.8)), 
+                    Integration.Calculator.cluster_centers_of_gravity(Integration.clustering_V2_2(get_detectedPoints(device), limit, 0.8, withWeight=True)) ], limit))
+        print(detectedPoints_)
+        print()
+        scatter._offsets3d = tuple(list(x) for x in zip(*detectedPoints_)) if len(detectedPoints_) != 0 else ([], [], [])
+      animation_232 = matplotlib.animation.FuncAnimation(fig=figure, func=update_matplotlibAnimation_SOP_122, fargs=(axes_122.scatter([], [], [], label='Detection Object'), ), interval=device.config.parameter.framePeriodicity, cache_frame_data=False)
+      axes_122.legend()
+
+      matplotlib.pyplot.show()
+
+    def matplotlib_animation_V3(limit: int|float):
+      figure: matplotlib.pyplot.Figure = matplotlib.pyplot.figure()
+
+      axes_111: matplotlib.pyplot.Axes = figure.add_subplot(111, projection='3d')
+      axes_111.set_title("integration")
+      axes_111.set(xlim3d=(detectionLimit.x.min, detectionLimit.x.max), xlabel='X')
+      axes_111.set(ylim3d=(detectionLimit.y.min, detectionLimit.y.max), ylabel='Y')
+      axes_111.set(zlim3d=(detectionLimit.z.min, detectionLimit.z.max), zlabel='Z')
+      def update_matplotlibAnimation_SOP_111(frame, scatter: matplotlib.collections.PathCollection) -> matplotlib.collections.PathCollection:
+        # os.system("cls")
+        detectedPoints = get_detectedPoints(device)
+        detectedPoints_ = Integration.Calculator.cluster_centers(Integration.pairing([detectedPoints, 
+                    Integration.Calculator.cluster_centers(Integration.clustering_V1(detectedPoints, limit)), 
+                    Integration.Calculator.cluster_centers(Integration.clustering_V2_1(detectedPoints, limit, 0.8)), 
+                    Integration.Calculator.cluster_centers(Integration.clustering_V2_2(detectedPoints, limit, 0.8)), 
+                    Integration.Calculator.cluster_centers_of_gravity(Integration.clustering_V2_2(detectedPoints, limit, 0.8, True))], limit))
+        # print(detectedPoints, end="\n\n\n")
+        # print(detectedPoints_, end="\n\n\n")
+        scatter._offsets3d = tuple(list(x) for x in zip(*detectedPoints_)) if len(detectedPoints_) != 0 else ([], [], [])
+      animation_232 = matplotlib.animation.FuncAnimation(fig=figure, func=update_matplotlibAnimation_SOP_111, fargs=(axes_111.scatter([], [], [], label='Detection Object'), ), interval=device.config.parameter.framePeriodicity, cache_frame_data=False)
+      axes_111.legend()
+
+      matplotlib.pyplot.show()
+
+    limit = 1
+    # matplotlib_animation_V1(limit)
+    # matplotlib_animation_V2(limit)
+    matplotlib_animation_V3(limit)
+
+    device.Data_Buffering_thread_stop()
+    device.Data_Parse_thread_stop()
   update_3D()
 
   del device
