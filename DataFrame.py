@@ -4,7 +4,10 @@ import copy
 
 import numpy # numpy-1.26.0
 
-import Log
+try:
+  import Log
+except ModuleNotFoundError:
+  from Ti_mmWave_Demo_Driver import Log
 # %%
 class Converter:
   margeUint8_array = lambda num_of_uint8: [2**(8*i) for i in range(num_of_uint8)]

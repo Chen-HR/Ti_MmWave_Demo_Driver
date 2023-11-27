@@ -6,15 +6,17 @@ import threading
 import serial # pyserial-3.5
 import numpy # numpy-1.26.0
 
-import Log
-import SerialTool
 
 try:
   import Configuration
   import DataFrame
+  import Log
+  import SerialTool
 except ModuleNotFoundError:
   from Ti_mmWave_Demo_Driver import Configuration
   from Ti_mmWave_Demo_Driver import DataFrame
+  from Ti_mmWave_Demo_Driver import Log
+  from Ti_mmWave_Demo_Driver import SerialTool
   __all__ = ["Configuration", "DataFrame"]
   version = 1.0
 
