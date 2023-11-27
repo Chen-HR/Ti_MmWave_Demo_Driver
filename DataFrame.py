@@ -372,6 +372,6 @@ class DataFrame:
       dataFrame.CRC32 = 0
     
     # is complete DataFrame
-    dataFrame.iscomplete = True if dataFrame.CRC32 is not 0 else False
+    dataFrame.iscomplete = True if dataFrame.CRC32 != 0 else False
 
     return dataFrame, index-length+dataFrame.totalPacketLen
