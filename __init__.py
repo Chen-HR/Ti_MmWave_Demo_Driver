@@ -1,21 +1,29 @@
 # %%
 import time
-import math
 import threading
 # import os
 
 import serial # pyserial-3.5
 import numpy # numpy-1.26.0
-import matplotlib.pyplot # matplotlib-3.8.1
-import matplotlib.collections
-import matplotlib.animation
 
 import Log
 import SerialTool
-import Integration
 
-import Configuration
-import DataFrame
+try:
+  import Configuration
+  import DataFrame
+except ModuleNotFoundError:
+  from Ti_mmWave_Demo_Driver import Configuration
+  from Ti_mmWave_Demo_Driver import DataFrame
+  __all__ = ["Configuration", "DataFrame"]
+  version = 1.0
+
+if __name__ == '__main__':
+  import math
+  import matplotlib.pyplot # matplotlib-3.8.1
+  import matplotlib.collections
+  import matplotlib.animation
+  import IntegrationTool
 
 # %% 
 class Ti_mmWave:
@@ -442,7 +450,7 @@ if __name__ == '__main__':
       axes_233.set(ylim3d=(detectionLimit.y.min, detectionLimit.y.max), ylabel='Y')
       axes_233.set(zlim3d=(detectionLimit.z.min, detectionLimit.z.max), zlabel='Z')
       def update_matplotlibAnimation_SOP_233(frame, scatter: matplotlib.collections.PathCollection) -> matplotlib.collections.PathCollection:
-        detectedPoints_ = Integration.Calculator.cluster_centers(Integration.clustering_V1(get_detectedPoints(device), limit))
+        detectedPoints_ = IntegrationTool.Calculator.cluster_centers(IntegrationTool.clustering_V1(get_detectedPoints(device), limit))
         scatter._offsets3d = tuple(list(x) for x in zip(*detectedPoints_)) if len(detectedPoints_) != 0 else ([], [], [])
       animation_233 = matplotlib.animation.FuncAnimation(fig=figure, func=update_matplotlibAnimation_SOP_233, fargs=(axes_233.scatter([], [], [], label='Detection Object'), ), interval=device.config.parameter.framePeriodicity, cache_frame_data=False)
       axes_233.legend()
@@ -453,7 +461,7 @@ if __name__ == '__main__':
       axes_234.set(ylim3d=(detectionLimit.y.min, detectionLimit.y.max), ylabel='Y')
       axes_234.set(zlim3d=(detectionLimit.z.min, detectionLimit.z.max), zlabel='Z')
       def update_matplotlibAnimation_SOP_234(frame, scatter: matplotlib.collections.PathCollection) -> matplotlib.collections.PathCollection:
-        detectedPoints_ = Integration.Calculator.cluster_centers(Integration.clustering_V2_1(get_detectedPoints(device), limit, 0.8))
+        detectedPoints_ = IntegrationTool.Calculator.cluster_centers(IntegrationTool.clustering_V2_1(get_detectedPoints(device), limit, 0.8))
         scatter._offsets3d = tuple(list(x) for x in zip(*detectedPoints_)) if len(detectedPoints_) != 0 else ([], [], [])
       animation_234 = matplotlib.animation.FuncAnimation(fig=figure, func=update_matplotlibAnimation_SOP_234, fargs=(axes_234.scatter([], [], [], label='Detection Object'), ), interval=device.config.parameter.framePeriodicity, cache_frame_data=False)
       axes_234.legend()
@@ -464,7 +472,7 @@ if __name__ == '__main__':
       axes_235.set(ylim3d=(detectionLimit.y.min, detectionLimit.y.max), ylabel='Y')
       axes_235.set(zlim3d=(detectionLimit.z.min, detectionLimit.z.max), zlabel='Z')
       def update_matplotlibAnimation_SOP_235(frame, scatter: matplotlib.collections.PathCollection) -> matplotlib.collections.PathCollection:
-        detectedPoints_ = Integration.Calculator.cluster_centers(Integration.clustering_V2_2(get_detectedPoints(device), limit, 0.8))
+        detectedPoints_ = IntegrationTool.Calculator.cluster_centers(IntegrationTool.clustering_V2_2(get_detectedPoints(device), limit, 0.8))
         scatter._offsets3d = tuple(list(x) for x in zip(*detectedPoints_)) if len(detectedPoints_) != 0 else ([], [], [])
       animation_235 = matplotlib.animation.FuncAnimation(fig=figure, func=update_matplotlibAnimation_SOP_235, fargs=(axes_235.scatter([], [], [], label='Detection Object'), ), interval=device.config.parameter.framePeriodicity, cache_frame_data=False)
       axes_235.legend()
@@ -475,7 +483,7 @@ if __name__ == '__main__':
       axes_236.set(ylim3d=(detectionLimit.y.min, detectionLimit.y.max), ylabel='Y')
       axes_236.set(zlim3d=(detectionLimit.z.min, detectionLimit.z.max), zlabel='Z')
       def update_matplotlibAnimation_SOP_236(frame, scatter: matplotlib.collections.PathCollection) -> matplotlib.collections.PathCollection:
-        detectedPoints_ = Integration.Calculator.cluster_centers_of_gravity(Integration.clustering_V2_2(get_detectedPoints(device), limit, 0.8, withWeight=True))
+        detectedPoints_ = IntegrationTool.Calculator.cluster_centers_of_gravity(IntegrationTool.clustering_V2_2(get_detectedPoints(device), limit, 0.8, withWeight=True))
         scatter._offsets3d = tuple(list(x) for x in zip(*detectedPoints_)) if len(detectedPoints_) != 0 else ([], [], [])
       animation_236 = matplotlib.animation.FuncAnimation(fig=figure, func=update_matplotlibAnimation_SOP_236, fargs=(axes_236.scatter([], [], [], label='Detection Object'), ), interval=device.config.parameter.framePeriodicity, cache_frame_data=False)
       axes_236.legend()
@@ -486,11 +494,11 @@ if __name__ == '__main__':
       axes_232.set(ylim3d=(detectionLimit.y.min, detectionLimit.y.max), ylabel='Y')
       axes_232.set(zlim3d=(detectionLimit.z.min, detectionLimit.z.max), zlabel='Z')
       def update_matplotlibAnimation_SOP_232(frame, scatter: matplotlib.collections.PathCollection) -> matplotlib.collections.PathCollection:
-        detectedPoints_ = Integration.Calculator.cluster_centers(Integration.pairing([detectedPoints, 
-                    Integration.Calculator.cluster_centers(Integration.clustering_V1(get_detectedPoints(device), limit)), 
-                    Integration.Calculator.cluster_centers(Integration.clustering_V2_1(get_detectedPoints(device), limit, 0.8)), 
-                    Integration.Calculator.cluster_centers(Integration.clustering_V2_2(get_detectedPoints(device), limit, 0.8)), 
-                    Integration.Calculator.cluster_centers_of_gravity(Integration.clustering_V2_2(get_detectedPoints(device), limit, 0.8, withWeight=True)) ], limit))
+        detectedPoints_ = IntegrationTool.Calculator.cluster_centers(IntegrationTool.pairing([detectedPoints, 
+                    IntegrationTool.Calculator.cluster_centers(IntegrationTool.clustering_V1(get_detectedPoints(device), limit)), 
+                    IntegrationTool.Calculator.cluster_centers(IntegrationTool.clustering_V2_1(get_detectedPoints(device), limit, 0.8)), 
+                    IntegrationTool.Calculator.cluster_centers(IntegrationTool.clustering_V2_2(get_detectedPoints(device), limit, 0.8)), 
+                    IntegrationTool.Calculator.cluster_centers_of_gravity(IntegrationTool.clustering_V2_2(get_detectedPoints(device), limit, 0.8, withWeight=True)) ], limit))
         scatter._offsets3d = tuple(list(x) for x in zip(*detectedPoints_)) if len(detectedPoints_) != 0 else ([], [], [])
       animation_232 = matplotlib.animation.FuncAnimation(fig=figure, func=update_matplotlibAnimation_SOP_232, fargs=(axes_232.scatter([], [], [], label='Detection Object'), ), interval=device.config.parameter.framePeriodicity, cache_frame_data=False)
       axes_232.legend()
@@ -516,11 +524,11 @@ if __name__ == '__main__':
       axes_122.set(ylim3d=(detectionLimit.y.min, detectionLimit.y.max), ylabel='Y')
       axes_122.set(zlim3d=(detectionLimit.z.min, detectionLimit.z.max), zlabel='Z')
       def update_matplotlibAnimation_SOP_122(frame, scatter: matplotlib.collections.PathCollection) -> matplotlib.collections.PathCollection:
-        detectedPoints_ = Integration.Calculator.cluster_centers(Integration.pairing([detectedPoints, 
-                    Integration.Calculator.cluster_centers(Integration.clustering_V1(get_detectedPoints(device), limit)), 
-                    Integration.Calculator.cluster_centers(Integration.clustering_V2_1(get_detectedPoints(device), limit, 0.8)), 
-                    Integration.Calculator.cluster_centers(Integration.clustering_V2_2(get_detectedPoints(device), limit, 0.8)), 
-                    Integration.Calculator.cluster_centers_of_gravity(Integration.clustering_V2_2(get_detectedPoints(device), limit, 0.8, withWeight=True)) ], limit))
+        detectedPoints_ = IntegrationTool.Calculator.cluster_centers(IntegrationTool.pairing([detectedPoints, 
+                    IntegrationTool.Calculator.cluster_centers(IntegrationTool.clustering_V1(get_detectedPoints(device), limit)), 
+                    IntegrationTool.Calculator.cluster_centers(IntegrationTool.clustering_V2_1(get_detectedPoints(device), limit, 0.8)), 
+                    IntegrationTool.Calculator.cluster_centers(IntegrationTool.clustering_V2_2(get_detectedPoints(device), limit, 0.8)), 
+                    IntegrationTool.Calculator.cluster_centers_of_gravity(IntegrationTool.clustering_V2_2(get_detectedPoints(device), limit, 0.8, withWeight=True)) ], limit))
         print(detectedPoints_)
         print()
         scatter._offsets3d = tuple(list(x) for x in zip(*detectedPoints_)) if len(detectedPoints_) != 0 else ([], [], [])
@@ -540,23 +548,47 @@ if __name__ == '__main__':
       def update_matplotlibAnimation_SOP_111(frame, scatter: matplotlib.collections.PathCollection) -> matplotlib.collections.PathCollection:
         # os.system("cls")
         detectedPoints = get_detectedPoints(device)
-        detectedPoints_ = Integration.Calculator.cluster_centers(Integration.pairing([detectedPoints, 
-                    Integration.Calculator.cluster_centers(Integration.clustering_V1(detectedPoints, limit)), 
-                    Integration.Calculator.cluster_centers(Integration.clustering_V2_1(detectedPoints, limit, 0.8)), 
-                    Integration.Calculator.cluster_centers(Integration.clustering_V2_2(detectedPoints, limit, 0.8)), 
-                    Integration.Calculator.cluster_centers_of_gravity(Integration.clustering_V2_2(detectedPoints, limit, 0.8, True))], limit))
+        detectedPoints_ = IntegrationTool.Calculator.cluster_centers(IntegrationTool.pairing([detectedPoints, 
+                    IntegrationTool.Calculator.cluster_centers(IntegrationTool.clustering_V1(detectedPoints, limit)), 
+                    IntegrationTool.Calculator.cluster_centers(IntegrationTool.clustering_V2_1(detectedPoints, limit, 0.8)), 
+                    IntegrationTool.Calculator.cluster_centers(IntegrationTool.clustering_V2_2(detectedPoints, limit, 0.8)), 
+                    IntegrationTool.Calculator.cluster_centers_of_gravity(IntegrationTool.clustering_V2_2(detectedPoints, limit, 0.8, True))], limit))
         # print(detectedPoints, end="\n\n\n")
         # print(detectedPoints_, end="\n\n\n")
         scatter._offsets3d = tuple(list(x) for x in zip(*detectedPoints_)) if len(detectedPoints_) != 0 else ([], [], [])
-      animation_232 = matplotlib.animation.FuncAnimation(fig=figure, func=update_matplotlibAnimation_SOP_111, fargs=(axes_111.scatter([], [], [], label='Detection Object'), ), interval=device.config.parameter.framePeriodicity, cache_frame_data=False)
+      animation_111 = matplotlib.animation.FuncAnimation(fig=figure, func=update_matplotlibAnimation_SOP_111, fargs=(axes_111.scatter([], [], [], label='Detection Object'), ), interval=device.config.parameter.framePeriodicity, cache_frame_data=False)
       axes_111.legend()
 
       matplotlib.pyplot.show()
 
-    limit = 1
+    def matplotlib_animation_V4(limit: int|float):
+      """Focus only on "x, y" coordinates
+      """
+      figure: matplotlib.pyplot.Figure = matplotlib.pyplot.figure()
+      axes_111: matplotlib.pyplot.Axes = figure.add_subplot(111)
+      def update_matplotlibAnimation_SOP_111(frame, axes: matplotlib.pyplot.Axes) -> matplotlib.collections.PathCollection:
+        detectedPoints = get_detectedPoints(device)
+        detectedPoints_ = IntegrationTool.Calculator.cluster_centers(IntegrationTool.pairing([detectedPoints, 
+                    IntegrationTool.Calculator.cluster_centers(IntegrationTool.clustering_V1(detectedPoints, limit)), 
+                    IntegrationTool.Calculator.cluster_centers(IntegrationTool.clustering_V2_1(detectedPoints, limit, 0.8)), 
+                    IntegrationTool.Calculator.cluster_centers(IntegrationTool.clustering_V2_2(detectedPoints, limit, 0.8)), 
+                    IntegrationTool.Calculator.cluster_centers_of_gravity(IntegrationTool.clustering_V2_2(detectedPoints, limit, 0.8, True))], limit))
+        axes.clear()
+        axes.set_xlim([-10, 10])
+        axes.set_ylim([0, 10])
+        x, y, z = tuple(list(x) for x in zip(*detectedPoints)) if len(detectedPoints) != 0 else ([], [], [])
+        axes.scatter(x, y, color='b')
+        x, y, z = tuple(list(x) for x in zip(*detectedPoints_)) if len(detectedPoints_) != 0 else ([], [], [])
+        axes.scatter(x, y, color='r')
+      animation_111 = matplotlib.animation.FuncAnimation(fig=figure, func=update_matplotlibAnimation_SOP_111, fargs=(axes_111, ), interval=device.config.parameter.framePeriodicity, cache_frame_data=False)
+
+      matplotlib.pyplot.show()
+
+    limit = .5
     # matplotlib_animation_V1(limit)
     # matplotlib_animation_V2(limit)
-    matplotlib_animation_V3(limit)
+    # matplotlib_animation_V3(limit)
+    matplotlib_animation_V4(limit)
 
     device.Data_Buffering_thread_stop()
     device.Data_Parse_thread_stop()

@@ -4,11 +4,21 @@ The production reference of this project is from [`mmWave_Demo_Visualizer (v2.1.
 
 ## Library dependencies
 
+### For Core Library
+
 1. `pyserial`: 3.5
 2. `numpy`: 1.26.0
 
-### Install command
-
 ```cli
 python -m pip install pyserial==3.5 numpy==1.26.0
+```
+
+### For use example
+
+1. `matplotlib`: 3.8.1
+2. [`github.com/Chen-HR/IntegrationTool`](https://github.com/Chen-HR/IntegrationTool): 1.0
+
+```cli
+python -m pip install matplotlib==3.8.1
+git clone https://github.com/Chen-HR/IntegrationTool.git
 ```
