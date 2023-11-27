@@ -3,7 +3,10 @@ import math
 import re
 import copy
 
-import Log
+try:
+  import Log
+except ModuleNotFoundError:
+  from Ti_mmWave_Demo_Driver import Log
 # %%
 class Configuration_2_1_0:
   """reference to `MMWAVE SDK User Guide`
