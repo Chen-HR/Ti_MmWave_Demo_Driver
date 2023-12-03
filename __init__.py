@@ -35,7 +35,7 @@ class Ti_mmWave:
 
     self.platform = platform
 
-    self.logger = Logging.Logger(fileName="Logging/Ti_mmWave.log")
+    self.logger = Logging.Logger(fileName="Log/Ti_mmWave.log")
 
     self.Ctrl_port_baudrate = Ctrl_port_baudrate
     self.Ctrl_port = serial.Serial(port=Ctrl_port_name, baudrate=Ctrl_port_baudrate)
@@ -296,9 +296,9 @@ if __name__ == '__main__':
   device.sensorStart(log=True)
   print("sensorStart")
   lineBot = Notify.LineBot("access_token")
-  # os.system(".\Logging/Configuration_2_1_0.log < ''")
-  # os.system(".\Logging/DataFrame.log < ''")
-  # os.system(".\Logging/Ti_mmWave.log < ''")
+  # os.system(".\Log/Configuration_2_1_0.log < ''")
+  # os.system(".\Log/DataFrame.log < ''")
+  # os.system(".\Log/Ti_mmWave.log < ''")
 
   # def length(coordinate): return math.sqrt(sum(tuple(v**2 for v in coordinate)))
   length = lambda coordinate: math.sqrt(sum(tuple(v**2 for v in coordinate)))

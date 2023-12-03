@@ -3,6 +3,7 @@ Lib/
 Scripts/
 share/
 __pycache__/
-Logging/*.log
+Log/*.log
 Record/*.bin
 Test/
+Notify.py
