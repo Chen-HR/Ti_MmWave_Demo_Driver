@@ -5,9 +5,9 @@ import copy
 import numpy # numpy-1.26.0
 
 try:
-  import Log
+  import Logging
 except ModuleNotFoundError:
-  from Ti_mmWave_Demo_Driver import Log
+  from Ti_mmWave_Demo_Driver import Logging
 # %%
 class Converter:
   margeUint8_array = lambda num_of_uint8: [2**(8*i) for i in range(num_of_uint8)]
@@ -110,7 +110,7 @@ class DataFrame:
   def __init__(self, log: str | None = None) -> None:
     """Initialize DataFrame
     """
-    self.logger = Log.Logger(log if log is not None else "Log/DataFrame.log")
+    self.logger = Logging.Logger(log if log is not None else "LogDataFrame.log")
 
     # header
     # self.magicWords: tuple[numpy.uint8] = (0x02, 0x01, 0x04, 0x03, 0x06, 0x05, 0x08, 0x07) # `self.magicWords` will be removed, and use `DataFrame.magicBytes` instead
@@ -145,7 +145,7 @@ class DataFrame:
       dataByte (bytearray): Parse data sources
       log (bool, optional): Enable logging to log. Defaults to False.
     """
-    logger = Log.Logger(log if log is not None else "Log/DataFrame.log")
+    logger = Logging.Logger(log if log is not None else "LogDataFrame.log")
     dataFrame: DataFrame = DataFrame()
 
     # checke dataByte parse range

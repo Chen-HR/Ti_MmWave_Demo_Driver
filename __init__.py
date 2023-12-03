@@ -6,26 +6,27 @@ import threading
 import serial # pyserial-3.5
 import numpy # numpy-1.26.0
 
-
 try:
   import Configuration
   import DataFrame
-  import Log
+  import Logging
   import SerialTool
 except ModuleNotFoundError:
   from Ti_mmWave_Demo_Driver import Configuration
   from Ti_mmWave_Demo_Driver import DataFrame
-  from Ti_mmWave_Demo_Driver import Log
+  from Ti_mmWave_Demo_Driver import Logging
   from Ti_mmWave_Demo_Driver import SerialTool
   __all__ = ["Configuration", "DataFrame"]
   version = 1.0
 
 if __name__ == '__main__':
   import math
+  import datetime
   import matplotlib.pyplot # matplotlib-3.8.1
   import matplotlib.collections
   import matplotlib.animation
   import IntegrationTool
+  import Notify
 
 # %% 
 class Ti_mmWave:
@@ -34,7 +35,7 @@ class Ti_mmWave:
 
     self.platform = platform
 
-    self.logger = Log.Logger(fileName="Log/Ti_mmWave.log")
+    self.logger = Logging.Logger(fileName="Logging/Ti_mmWave.log")
 
     self.Ctrl_port_baudrate = Ctrl_port_baudrate
     self.Ctrl_port = serial.Serial(port=Ctrl_port_name, baudrate=Ctrl_port_baudrate)
@@ -286,13 +287,18 @@ if __name__ == '__main__':
   device.data.logger.echo = True
   print("configured device...")
   device.sensorStop(log=True)
-  device.Ctrl_Load_file("Profile\Profile-3.cfg")
-  device.config.set_CfarRangeThreshold_dB(threshold_dB=12)
+  device.Ctrl_Load_file("Profile\Profile-4.cfg")
+  device.config.set_CfarRangeThreshold_dB(threshold_dB=14)
   device.config.set_RemoveStaticClutter(enabled=True)
-  device.config.set_FramePeriodicity(FramePeriodicity_ms=100) # get as `device.config.parameter.framePeriodicity`
+  # device.config.set_RemoveStaticClutter(enabled=False)
+  device.config.set_FramePeriodicity(FramePeriodicity_ms=1000) # get as `device.config.parameter.framePeriodicity`
   device.Ctrl_Send()
   device.sensorStart(log=True)
   print("sensorStart")
+  lineBot = Notify.LineBot("access_token")
+  # os.system(".\LogConfiguration_2_1_0.log < ''")
+  # os.system(".\LogDataFrame.log < ''")
+  # os.system(".\LogTi_mmWave.log < ''")
 
   # def length(coordinate): return math.sqrt(sum(tuple(v**2 for v in coordinate)))
   length = lambda coordinate: math.sqrt(sum(tuple(v**2 for v in coordinate)))
@@ -425,13 +431,13 @@ if __name__ == '__main__':
 
   detectionLimit = AxisLimit_3d(-1.5, 1.5, y_min=0, y_max=3)
   
+  def get_detectedPoints(device: Ti_mmWave) -> list[tuple]:
+    return [(DataFrame.Converter.QFormat.parse(device.data.detectedObjects.infomation.xyzQFormat, DetectedObj.x), DataFrame.Converter.QFormat.parse(device.data.detectedObjects.infomation.xyzQFormat, DetectedObj.y), DataFrame.Converter.QFormat.parse(device.data.detectedObjects.infomation.xyzQFormat, DetectedObj.z)) for DetectedObj in device.data.detectedObjects.Objects]
+
   def update_3D():
 
     device.Data_Buffering_thread_start()
     device.Data_Parse_thread_start()
-
-    def get_detectedPoints(device: Ti_mmWave) -> list[tuple]:
-      return [(DataFrame.Converter.QFormat.parse(device.data.detectedObjects.infomation.xyzQFormat, DetectedObj.x), DataFrame.Converter.QFormat.parse(device.data.detectedObjects.infomation.xyzQFormat, DetectedObj.y), DataFrame.Converter.QFormat.parse(device.data.detectedObjects.infomation.xyzQFormat, DetectedObj.z)) for DetectedObj in device.data.detectedObjects.Objects]
 
     def matplotlib_animation_V1(limit: int|float):
       figure: matplotlib.pyplot.Figure = matplotlib.pyplot.figure()
@@ -566,27 +572,45 @@ if __name__ == '__main__':
     def matplotlib_animation_V4(limit: int|float):
       """Focus only on "x, y" coordinates
       """
+      def filter_points(points, x_range, y_range, z_range):
+        filtered_points = []
+        if points is not None:
+          for point in points:
+            x, y, z = point
+            if x_range[0] <= x <= x_range[1] and y_range[0] <= y <= y_range[1] and z_range[0] <= z <= z_range[1]:
+              filtered_points.append(point)
+        return filtered_points
       figure: matplotlib.pyplot.Figure = matplotlib.pyplot.figure()
       axes_111: matplotlib.pyplot.Axes = figure.add_subplot(111)
       def update_matplotlibAnimation_SOP_111(frame, axes: matplotlib.pyplot.Axes) -> matplotlib.collections.PathCollection:
-        detectedPoints = get_detectedPoints(device)
-        detectedPoints_ = IntegrationTool.Calculator.cluster_centers(IntegrationTool.pairing([detectedPoints, 
-                    IntegrationTool.Calculator.cluster_centers(IntegrationTool.clustering_V1(detectedPoints, limit)), 
-                    IntegrationTool.Calculator.cluster_centers(IntegrationTool.clustering_V2_1(detectedPoints, limit, 0.8)), 
-                    IntegrationTool.Calculator.cluster_centers(IntegrationTool.clustering_V2_2(detectedPoints, limit, 0.8)), 
-                    IntegrationTool.Calculator.cluster_centers_of_gravity(IntegrationTool.clustering_V2_2(detectedPoints, limit, 0.8, True))], limit))
+        detectedPoints = filter_points(get_detectedPoints(device), [-1, 1], [0, 1.5], [-1, 1])
+        detectedPoints_ = [detectedPoints]
+        try:
+          detectedPoints_.append(IntegrationTool.Calculator.cluster_centers(IntegrationTool.clustering_V1(detectedPoints, limit)))
+          detectedPoints_.append(IntegrationTool.Calculator.cluster_centers(IntegrationTool.clustering_V2_1(detectedPoints, limit, 0.8)))
+          detectedPoints_.append(IntegrationTool.Calculator.cluster_centers(IntegrationTool.clustering_V2_2(detectedPoints, limit, 0.8)))
+          detectedPoints_.append(IntegrationTool.Calculator.cluster_centers_of_gravity(IntegrationTool.clustering_V2_2(detectedPoints, limit, 0.8, True)))
+        except ValueError:
+          pass
+        except ZeroDivisionError:
+          pass
+
+        x_range, y_range, z_range = [-1.5, 1.5], [0, 1.5], [-1, 1]
+
+        target = filter_points(IntegrationTool.Calculator.cluster_centers(IntegrationTool.pairing(detectedPoints_, limit, useVirtualPoints=True)), x_range, y_range, z_range)
+
         axes.clear()
-        axes.set_xlim([-10, 10])
-        axes.set_ylim([0, 10])
+        axes.set_xlim([-.5, 1.5])
+        axes.set_ylim(y_range)
         x, y, z = tuple(list(x) for x in zip(*detectedPoints)) if len(detectedPoints) != 0 else ([], [], [])
-        axes.scatter(x, y, color='b')
-        x, y, z = tuple(list(x) for x in zip(*detectedPoints_)) if len(detectedPoints_) != 0 else ([], [], [])
+        axes.scatter(x, y, color='b', alpha=0.3)
+        x, y, z = tuple(list(x) for x in zip(*target)) if len(target) != 0 else ([], [], [])
         axes.scatter(x, y, color='r')
       animation_111 = matplotlib.animation.FuncAnimation(fig=figure, func=update_matplotlibAnimation_SOP_111, fargs=(axes_111, ), interval=device.config.parameter.framePeriodicity, cache_frame_data=False)
 
       matplotlib.pyplot.show()
 
-    limit = .5
+    limit = .3
     # matplotlib_animation_V1(limit)
     # matplotlib_animation_V2(limit)
     # matplotlib_animation_V3(limit)
@@ -594,7 +618,222 @@ if __name__ == '__main__':
 
     device.Data_Buffering_thread_stop()
     device.Data_Parse_thread_stop()
-  update_3D()
+  # update_3D()
 
+  def detectMovement():
+    device.Data_Buffering_thread_start()
+    device.Data_Parse_thread_start()
+    
+    def filter_points(points, x_range, y_range, z_range):
+      filtered_points = []
+      if points is not None:
+        for point in points:
+          x, y, z = point
+          if x_range[0] <= x <= x_range[1] and y_range[0] <= y <= y_range[1] and z_range[0] <= z <= z_range[1]:
+            filtered_points.append(point)
+      return filtered_points
+    def nearestPoint(points: list[tuple], target_point = (0, 0, 0)):
+      min_distance = float('inf')
+      nearest = None
+      for point in points:
+        distance = IntegrationTool.Calculator.distance(target_point, point)
+        if distance < min_distance:
+          min_distance, nearest = distance, point
+      return nearest
+    def vectorOffset(target: tuple, source: tuple = (0, 0, 0)) -> tuple:
+      return tuple(numpy.array(target) - numpy.array(source))
+    def vectorMove(offset: tuple, source: tuple = (0, 0, 0)) -> tuple:
+      return tuple(numpy.array(offset) + numpy.array(source))
+    def vectorScale(source: tuple, scale) -> tuple:
+      return tuple(numpy.array(source) * scale)
+    def vectorPredict(current: tuple, previous: tuple = (0, 0, 0), scale = 1.0) -> tuple:
+      return (vectorMove(vectorScale(vectorOffset(current, previous), -scale), previous), vectorMove(vectorScale(vectorOffset(current, previous), scale), previous))
+    
+    class Detected:
+      # def __init__(self, device, limit = 0.5, TimeToLive = 5, predictScale = 1.5):
+      #   self.device = device
+      #   self.limit = limit
+      #   self.TimeToLive = TimeToLive
+      #   self.scale = predictScale
+      #   self.ttl = self.TimeToLive
+      #   self.earlier = None
+      #   self.target = None
+      def update_(self):
+        print("Detected.update_()")
+        try:
+          while self.update:
+            detectedPoints = get_detectedPoints(self.device)
+            detectedPoints_with_clustering = [get_detectedPoints(self.device)]
+            try:
+              detectedPoints_with_clustering.append(IntegrationTool.Calculator.cluster_centers(IntegrationTool.clustering_V1(detectedPoints, self.limit)))
+              detectedPoints_with_clustering.append(IntegrationTool.Calculator.cluster_centers(IntegrationTool.clustering_V2_1(detectedPoints, self.limit, 0.8)))
+              detectedPoints_with_clustering.append(IntegrationTool.Calculator.cluster_centers(IntegrationTool.clustering_V2_2(detectedPoints, self.limit, 0.8)))
+              detectedPoints_with_clustering.append(IntegrationTool.Calculator.cluster_centers_of_gravity(IntegrationTool.clustering_V2_2(detectedPoints, self.limit, 0.8, True)))
+            except ValueError:
+              pass
+            except ZeroDivisionError:
+              pass
+
+            self.target = nearestPoint(filter_points(IntegrationTool.Calculator.cluster_centers(IntegrationTool.pairing(detectedPoints_with_clustering, self.limit, useVirtualPoints=True)), self.x_range, self.y_range, self.z_range))
+
+            # detectedPoints = get_detectedPoints(self.device)
+            # detectedPoints = IntegrationTool.Calculator.cluster_centers(IntegrationTool.pairing([detectedPoints, 
+            #             IntegrationTool.Calculator.cluster_centers(IntegrationTool.clustering_V1(detectedPoints, self.limit)), 
+            #             IntegrationTool.Calculator.cluster_centers(IntegrationTool.clustering_V2_1(detectedPoints, self.limit, 0.8)), 
+            #             IntegrationTool.Calculator.cluster_centers(IntegrationTool.clustering_V2_2(detectedPoints, self.limit, 0.8)), 
+            #             IntegrationTool.Calculator.cluster_centers_of_gravity(IntegrationTool.clustering_V2_2(detectedPoints, self.limit, 0.8, True))], self.limit))
+            # self.target = nearestPoint(filter_points(detectedPoints),
+            #             [-1, 1], [0, 2], [-1, 1])
+            # print(self.ttl, self.earlier)
+            # print(self.target)
+            if self.target is not None:
+              print("                                target is not None")
+              if self.earlier is not None:
+                print("                                earlier is not None")
+                self.predict = vectorPredict(self.target, self.earlier, self.scale)
+                if self.predict is not None and len(self.predict) == 2:
+                  try:
+                    print(f"                                {self.ttl}: predict: ({self.predict[0][0]:7.4f}, {self.predict[0][1]:7.4f}, {self.predict[0][2]:7.4f}), ({self.predict[1][0]:7.4f}, {self.predict[1][1]:7.4f}, {self.predict[1][2]:7.4f})")
+                    if self.predict[0][1] > 0 and self.predict[1][1] < 0: # Leaving
+                      print(Logging.formatted_time(datetime.timezone.utc, "%Y-%m-%d %H:%M:%S.%f"), "someone leaving")
+                    if self.predict[0][1] < 0 and self.predict[1][1] > 0: # Entering
+                      print(Logging.formatted_time(datetime.timezone.utc, "%Y-%m-%d %H:%M:%S.%f"), "someone entering")
+                  except IndexError as indexError:
+                    print(f"{indexError} {self.predict}")
+              self.ttl = self.TimeToLive
+              self.earlier = self.target
+              # print(f"earlier: {self.earlier}")
+            elif self.target is None:
+              print("                                target is None")
+              if self.predict is not None and len(self.predict) == 2 and self.predict[0][1] > 0 and self.predict[1][1] < 0: # Leaved
+                print("                                predict is not None")
+                print(Logging.formatted_time(datetime.timezone.utc, "%Y-%m-%d %H:%M:%S.%f"), "someone leaved")
+              self.ttl = self.ttl-1 if self.ttl > 0 else self.TimeToLive
+              if self.ttl <= 0:
+                self.earlier =  None
+                self.predict = tuple()
+            # print(self.predict)
+            # print()
+            time.sleep(device.config.parameter.framePeriodicity/1000)
+        except KeyboardInterrupt:
+          pass
+      def start(self):
+        self.update = True
+        self.updater.start()
+      def stop(self):
+        self.update = False
+      def __init__(self, device, x_range, y_range, z_range, limit = 0.3, TimeToLive = 5, predictScale = 1.5):
+        self.device = device
+        self.limit = limit
+        self.TimeToLive = TimeToLive
+        self.scale = predictScale
+        self.ttl = self.TimeToLive
+        self.earlier = None
+        self.predict = None
+        self.target = None
+        self.x_range = x_range
+        self.y_range = y_range
+        self.z_range = z_range
+        self.updater = threading.Thread(target=self.update_)
+        self.update = False
+        self.start()
+    # detected = Detected(device, [-1, 1], [0, 2], [-1, 1], predictScale=1.5)
+    # try:
+    #   while True:
+    #     pass
+    # except KeyboardInterrupt:
+    #   pass
+    # detected.stop()
+    # figure: matplotlib.pyplot.Figure = matplotlib.pyplot.figure()
+    # plot: matplotlib.pyplot.Axes = figure.add_subplot(111)
+    # def update_matplotlibAnimation_SOP_111(frame, plot: matplotlib.pyplot.Axes, target, predict) -> matplotlib.collections.PathCollection:
+    #   plot.clear()
+    #   plot.set_xlim([-5, 5])
+    #   plot.set_ylim([0, 5])
+    #   if predict is not None and len(predict) == 2:
+    #     plot.scatter([predict[0][0], predict[1][0]], [predict[0][1], predict[1][1]], color='r')
+    #     print(f"scatter: ({predict[0][0]:7.4f}, {predict[0][1]:7.4f}, {predict[0][2]:7.4f}), ({predict[1][0]:7.4f}, {predict[1][1]:7.4f}, {predict[1][2]:7.4f})")
+    #     if target is not None:
+    #       offset = vectorOffset(predict[1], target)
+    #       plot.arrow(target[0], target[1], offset[0], offset[1])
+    # animation_111 = matplotlib.animation.FuncAnimation(fig=figure, func=update_matplotlibAnimation_SOP_111, fargs=(plot, detected.target, detected.predict), interval=device.config.parameter.framePeriodicity, cache_frame_data=False)
+    # matplotlib.pyplot.show()
+
+    limit = 0.3
+    # x_range, y_range, z_range = [-.5, .5], [0, .5], [-.5, .5]
+    x_range, y_range, z_range = [-1.5, 1.5], [0, 1], [-1, 1]
+    earlier = None
+    scale = 1
+    predict = None
+    TimeToLive = 5
+    ttl = 0
+    try:
+      while True:
+        detectedPoints = filter_points(get_detectedPoints(device), x_range, y_range, z_range)
+        # print(f"{Logging.formatted_time(datetime.timezone.utc, '%Y-%m-%d %H:%M:%S.%f')}: [{detectedPoints}]")
+        detectedPoints_with_clustering = [detectedPoints]
+        try:
+          detectedPoints_with_clustering.append(IntegrationTool.Calculator.cluster_centers(IntegrationTool.clustering_V1(detectedPoints, limit)))
+          detectedPoints_with_clustering.append(IntegrationTool.Calculator.cluster_centers(IntegrationTool.clustering_V2_1(detectedPoints, limit, 0.8)))
+          detectedPoints_with_clustering.append(IntegrationTool.Calculator.cluster_centers(IntegrationTool.clustering_V2_2(detectedPoints, limit, 0.8)))
+          detectedPoints_with_clustering.append(IntegrationTool.Calculator.cluster_centers_of_gravity(IntegrationTool.clustering_V2_2(detectedPoints, limit, 0.8, True)))
+        except ValueError:
+          pass
+        except ZeroDivisionError:
+          pass
+
+        target = nearestPoint(filter_points(IntegrationTool.Calculator.cluster_centers(IntegrationTool.pairing(detectedPoints_with_clustering, limit, useVirtualPoints=True)), x_range, y_range, z_range))
+
+        # detectedPoints = get_detectedPoints(self.device)
+        # detectedPoints = IntegrationTool.Calculator.cluster_centers(IntegrationTool.pairing([detectedPoints, 
+        #             IntegrationTool.Calculator.cluster_centers(IntegrationTool.clustering_V1(detectedPoints, self.limit)), 
+        #             IntegrationTool.Calculator.cluster_centers(IntegrationTool.clustering_V2_1(detectedPoints, self.limit, 0.8)), 
+        #             IntegrationTool.Calculator.cluster_centers(IntegrationTool.clustering_V2_2(detectedPoints, self.limit, 0.8)), 
+        #             IntegrationTool.Calculator.cluster_centers_of_gravity(IntegrationTool.clustering_V2_2(detectedPoints, self.limit, 0.8, True))], self.limit))
+        # self.target = nearestPoint(filter_points(detectedPoints),
+        #             [-1, 1], [0, 2], [-1, 1])
+        # print(self.ttl, self.earlier)
+        # print(self.target)
+        if target is not None:
+          # print("                                target is not None")
+          ttl = TimeToLive
+          if earlier is not None:
+            # print("                                earlier is not None")
+            predict = vectorPredict(target, earlier, scale)
+            if predict is not None and len(predict) == 2:
+              try:
+                # print(f"{Logging.formatted_time(datetime.timezone.utc, '%Y-%m-%d %H:%M:%S.%f')}: {ttl}: ({predict[0][0]:7.4f}, {predict[0][1]:7.4f}, {predict[0][2]:7.4f}), ({target[0]:7.4f}, {target[1]:7.4f}, {target[2]:7.4f}), ({predict[1][0]:7.4f}, {predict[1][1]:7.4f}, {predict[1][2]:7.4f})")
+                print(f"{Logging.formatted_time(datetime.timezone.utc, '%Y-%m-%d %H:%M:%S.%f')}: {ttl}: ({target[0]:5.2f}, {target[2]:5.2f}, {target[1]:5.2f})")
+                # if predict[0][0] > 0 and predict[1][0] < 0: # Leaving
+                if earlier[0] > 0 and target[0] < 0: # Leaving
+                  lineBot.multicast(["Uf91628cf84ce7d9dcf7cb355dc8d4102"], "有人離開了工作區")
+                  print(Logging.formatted_time(datetime.timezone.utc, "%Y-%m-%d %H:%M:%S.%f"), "someone leaving")
+                # if predict[0][0] < 0 and predict[1][0] > 0: # Entering
+                if earlier[0] < 0 and target[0] > 0: # Entering
+                  lineBot.multicast(["Uf91628cf84ce7d9dcf7cb355dc8d4102"], "有人進入了工作區")
+                  print(Logging.formatted_time(datetime.timezone.utc, "%Y-%m-%d %H:%M:%S.%f"), "someone entering")
+              except IndexError as indexError:
+                print(f"{indexError} {predict}")
+          earlier = target
+        elif target is None:
+          # print("                                target is None")
+          print(f"{Logging.formatted_time(datetime.timezone.utc, '%Y-%m-%d %H:%M:%S.%f')}: {ttl}: {'---------------------' if ttl>0 else ''}")
+          # if predict is not None and len(predict) == 2 and predict[0][0] > 0 and predict[1][0] < 0: # Leaved
+          #   # print("                                predict is not None")
+          #   print(Logging.formatted_time(datetime.timezone.utc, "%Y-%m-%d %H:%M:%S.%f"), "someone leaved")
+          ttl = ttl-1 if ttl > 0 else 0
+          if ttl <= 0:
+            earlier =  None
+            predict = tuple()
+        time.sleep(device.config.parameter.framePeriodicity/1000)
+    except KeyboardInterrupt:
+      pass
+
+    device.Data_Buffering_thread_stop()
+    device.Data_Parse_thread_stop()
+  # detectMovement()
+  
+  update_3D()
+  # detectMovement()
   del device
 # %%
