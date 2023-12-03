@@ -110,7 +110,7 @@ class DataFrame:
   def __init__(self, log: str | None = None) -> None:
     """Initialize DataFrame
     """
-    self.logger = Logging.Logger(log if log is not None else "LogDataFrame.log")
+    self.logger = Logging.Logger(log if log is not None else "Logging/DataFrame.log")
 
     # header
     # self.magicWords: tuple[numpy.uint8] = (0x02, 0x01, 0x04, 0x03, 0x06, 0x05, 0x08, 0x07) # `self.magicWords` will be removed, and use `DataFrame.magicBytes` instead
@@ -145,7 +145,7 @@ class DataFrame:
       dataByte (bytearray): Parse data sources
       log (bool, optional): Enable logging to log. Defaults to False.
     """
-    logger = Logging.Logger(log if log is not None else "LogDataFrame.log")
+    logger = Logging.Logger(log if log is not None else "Logging/DataFrame.log")
     dataFrame: DataFrame = DataFrame()
 
     # checke dataByte parse range

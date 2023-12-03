@@ -16,9 +16,9 @@ python -m pip install pyserial==3.5 numpy==1.26.0
 ### For use example
 
 1. `matplotlib`: 3.8.1
-2. [`github.com/Chen-HR/IntegrationTool`](https://github.com/Chen-HR/IntegrationTool): 1.0
+2. [`github.com/Chen-HR/HAClusteringTool`](https://github.com/Chen-HR/HAClusteringTool): 1.0
 
 ```cli
 python -m pip install matplotlib==3.8.1
-git clone https://github.com/Chen-HR/IntegrationTool.git
+git clone https://github.com/Chen-HR/HAClusteringTool.git
 ```

@@ -1741,7 +1741,7 @@ class Configuration_2_1_0:
       self.maxRange = None 
       self.maxVelocity = None 
       self.thresholdScaleDb = None 
-      self.logger = Logging.Logger(fileName="LogConfiguration_2_1_0.log")
+      self.logger = Logging.Logger(fileName="Logging/Configuration_2_1_0.log")
 
     def parse(self, command, verificationLevel: str="Error") -> None: # TODO: trans to use `setter` and `getter`
       """Parse the command to get the configured parameters
@@ -1842,7 +1842,7 @@ class Configuration_2_1_0:
     self.platform: str = platform
     self.command: Configuration_2_1_0.Command = Configuration_2_1_0.Command(platform)
     self.parameter: Configuration_2_1_0.Parameter = Configuration_2_1_0.Parameter(platform) 
-    self.logger = Logging.Logger(fileName="LogConfiguration_2_1_0.log")
+    self.logger = Logging.Logger(fileName="Logging/Configuration_2_1_0.log")
 
   def parse_commandLine(self, commandLine: str) -> None:
     """parse command line

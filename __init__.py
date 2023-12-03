@@ -25,7 +25,7 @@ if __name__ == '__main__':
   import matplotlib.pyplot # matplotlib-3.8.1
   import matplotlib.collections
   import matplotlib.animation
-  import IntegrationTool
+  import HAClusteringTool
   import Notify
 
 # %% 
@@ -296,9 +296,9 @@ if __name__ == '__main__':
   device.sensorStart(log=True)
   print("sensorStart")
   lineBot = Notify.LineBot("access_token")
-  # os.system(".\LogConfiguration_2_1_0.log < ''")
-  # os.system(".\LogDataFrame.log < ''")
-  # os.system(".\LogTi_mmWave.log < ''")
+  # os.system(".\Logging/Configuration_2_1_0.log < ''")
+  # os.system(".\Logging/DataFrame.log < ''")
+  # os.system(".\Logging/Ti_mmWave.log < ''")
 
   # def length(coordinate): return math.sqrt(sum(tuple(v**2 for v in coordinate)))
   length = lambda coordinate: math.sqrt(sum(tuple(v**2 for v in coordinate)))
@@ -458,7 +458,7 @@ if __name__ == '__main__':
       axes_233.set(ylim3d=(detectionLimit.y.min, detectionLimit.y.max), ylabel='Y')
       axes_233.set(zlim3d=(detectionLimit.z.min, detectionLimit.z.max), zlabel='Z')
       def update_matplotlibAnimation_SOP_233(frame, scatter: matplotlib.collections.PathCollection) -> matplotlib.collections.PathCollection:
-        detectedPoints_ = IntegrationTool.Calculator.cluster_centers(IntegrationTool.clustering_V1(get_detectedPoints(device), limit))
+        detectedPoints_ = HAClusteringTool.Calculator.cluster_centers(HAClusteringTool.clustering_V1(get_detectedPoints(device), limit))
         scatter._offsets3d = tuple(list(x) for x in zip(*detectedPoints_)) if len(detectedPoints_) != 0 else ([], [], [])
       animation_233 = matplotlib.animation.FuncAnimation(fig=figure, func=update_matplotlibAnimation_SOP_233, fargs=(axes_233.scatter([], [], [], label='Detection Object'), ), interval=device.config.parameter.framePeriodicity, cache_frame_data=False)
       axes_233.legend()
@@ -469,7 +469,7 @@ if __name__ == '__main__':
       axes_234.set(ylim3d=(detectionLimit.y.min, detectionLimit.y.max), ylabel='Y')
       axes_234.set(zlim3d=(detectionLimit.z.min, detectionLimit.z.max), zlabel='Z')
       def update_matplotlibAnimation_SOP_234(frame, scatter: matplotlib.collections.PathCollection) -> matplotlib.collections.PathCollection:
-        detectedPoints_ = IntegrationTool.Calculator.cluster_centers(IntegrationTool.clustering_V2_1(get_detectedPoints(device), limit, 0.8))
+        detectedPoints_ = HAClusteringTool.Calculator.cluster_centers(HAClusteringTool.clustering_V2_1(get_detectedPoints(device), limit, 0.8))
         scatter._offsets3d = tuple(list(x) for x in zip(*detectedPoints_)) if len(detectedPoints_) != 0 else ([], [], [])
       animation_234 = matplotlib.animation.FuncAnimation(fig=figure, func=update_matplotlibAnimation_SOP_234, fargs=(axes_234.scatter([], [], [], label='Detection Object'), ), interval=device.config.parameter.framePeriodicity, cache_frame_data=False)
       axes_234.legend()
@@ -480,7 +480,7 @@ if __name__ == '__main__':
       axes_235.set(ylim3d=(detectionLimit.y.min, detectionLimit.y.max), ylabel='Y')
       axes_235.set(zlim3d=(detectionLimit.z.min, detectionLimit.z.max), zlabel='Z')
       def update_matplotlibAnimation_SOP_235(frame, scatter: matplotlib.collections.PathCollection) -> matplotlib.collections.PathCollection:
-        detectedPoints_ = IntegrationTool.Calculator.cluster_centers(IntegrationTool.clustering_V2_2(get_detectedPoints(device), limit, 0.8))
+        detectedPoints_ = HAClusteringTool.Calculator.cluster_centers(HAClusteringTool.clustering_V2_2(get_detectedPoints(device), limit, 0.8))
         scatter._offsets3d = tuple(list(x) for x in zip(*detectedPoints_)) if len(detectedPoints_) != 0 else ([], [], [])
       animation_235 = matplotlib.animation.FuncAnimation(fig=figure, func=update_matplotlibAnimation_SOP_235, fargs=(axes_235.scatter([], [], [], label='Detection Object'), ), interval=device.config.parameter.framePeriodicity, cache_frame_data=False)
       axes_235.legend()
@@ -491,7 +491,7 @@ if __name__ == '__main__':
       axes_236.set(ylim3d=(detectionLimit.y.min, detectionLimit.y.max), ylabel='Y')
       axes_236.set(zlim3d=(detectionLimit.z.min, detectionLimit.z.max), zlabel='Z')
       def update_matplotlibAnimation_SOP_236(frame, scatter: matplotlib.collections.PathCollection) -> matplotlib.collections.PathCollection:
-        detectedPoints_ = IntegrationTool.Calculator.cluster_centers_of_gravity(IntegrationTool.clustering_V2_2(get_detectedPoints(device), limit, 0.8, withWeight=True))
+        detectedPoints_ = HAClusteringTool.Calculator.cluster_centers_of_gravity(HAClusteringTool.clustering_V2_2(get_detectedPoints(device), limit, 0.8, withWeight=True))
         scatter._offsets3d = tuple(list(x) for x in zip(*detectedPoints_)) if len(detectedPoints_) != 0 else ([], [], [])
       animation_236 = matplotlib.animation.FuncAnimation(fig=figure, func=update_matplotlibAnimation_SOP_236, fargs=(axes_236.scatter([], [], [], label='Detection Object'), ), interval=device.config.parameter.framePeriodicity, cache_frame_data=False)
       axes_236.legend()
@@ -502,11 +502,11 @@ if __name__ == '__main__':
       axes_232.set(ylim3d=(detectionLimit.y.min, detectionLimit.y.max), ylabel='Y')
       axes_232.set(zlim3d=(detectionLimit.z.min, detectionLimit.z.max), zlabel='Z')
       def update_matplotlibAnimation_SOP_232(frame, scatter: matplotlib.collections.PathCollection) -> matplotlib.collections.PathCollection:
-        detectedPoints_ = IntegrationTool.Calculator.cluster_centers(IntegrationTool.pairing([detectedPoints, 
-                    IntegrationTool.Calculator.cluster_centers(IntegrationTool.clustering_V1(get_detectedPoints(device), limit)), 
-                    IntegrationTool.Calculator.cluster_centers(IntegrationTool.clustering_V2_1(get_detectedPoints(device), limit, 0.8)), 
-                    IntegrationTool.Calculator.cluster_centers(IntegrationTool.clustering_V2_2(get_detectedPoints(device), limit, 0.8)), 
-                    IntegrationTool.Calculator.cluster_centers_of_gravity(IntegrationTool.clustering_V2_2(get_detectedPoints(device), limit, 0.8, withWeight=True)) ], limit))
+        detectedPoints_ = HAClusteringTool.Calculator.cluster_centers(HAClusteringTool.pairing([detectedPoints, 
+                    HAClusteringTool.Calculator.cluster_centers(HAClusteringTool.clustering_V1(get_detectedPoints(device), limit)), 
+                    HAClusteringTool.Calculator.cluster_centers(HAClusteringTool.clustering_V2_1(get_detectedPoints(device), limit, 0.8)), 
+                    HAClusteringTool.Calculator.cluster_centers(HAClusteringTool.clustering_V2_2(get_detectedPoints(device), limit, 0.8)), 
+                    HAClusteringTool.Calculator.cluster_centers_of_gravity(HAClusteringTool.clustering_V2_2(get_detectedPoints(device), limit, 0.8, withWeight=True)) ], limit))
         scatter._offsets3d = tuple(list(x) for x in zip(*detectedPoints_)) if len(detectedPoints_) != 0 else ([], [], [])
       animation_232 = matplotlib.animation.FuncAnimation(fig=figure, func=update_matplotlibAnimation_SOP_232, fargs=(axes_232.scatter([], [], [], label='Detection Object'), ), interval=device.config.parameter.framePeriodicity, cache_frame_data=False)
       axes_232.legend()
@@ -532,11 +532,11 @@ if __name__ == '__main__':
       axes_122.set(ylim3d=(detectionLimit.y.min, detectionLimit.y.max), ylabel='Y')
       axes_122.set(zlim3d=(detectionLimit.z.min, detectionLimit.z.max), zlabel='Z')
       def update_matplotlibAnimation_SOP_122(frame, scatter: matplotlib.collections.PathCollection) -> matplotlib.collections.PathCollection:
-        detectedPoints_ = IntegrationTool.Calculator.cluster_centers(IntegrationTool.pairing([detectedPoints, 
-                    IntegrationTool.Calculator.cluster_centers(IntegrationTool.clustering_V1(get_detectedPoints(device), limit)), 
-                    IntegrationTool.Calculator.cluster_centers(IntegrationTool.clustering_V2_1(get_detectedPoints(device), limit, 0.8)), 
-                    IntegrationTool.Calculator.cluster_centers(IntegrationTool.clustering_V2_2(get_detectedPoints(device), limit, 0.8)), 
-                    IntegrationTool.Calculator.cluster_centers_of_gravity(IntegrationTool.clustering_V2_2(get_detectedPoints(device), limit, 0.8, withWeight=True)) ], limit))
+        detectedPoints_ = HAClusteringTool.Calculator.cluster_centers(HAClusteringTool.pairing([detectedPoints, 
+                    HAClusteringTool.Calculator.cluster_centers(HAClusteringTool.clustering_V1(get_detectedPoints(device), limit)), 
+                    HAClusteringTool.Calculator.cluster_centers(HAClusteringTool.clustering_V2_1(get_detectedPoints(device), limit, 0.8)), 
+                    HAClusteringTool.Calculator.cluster_centers(HAClusteringTool.clustering_V2_2(get_detectedPoints(device), limit, 0.8)), 
+                    HAClusteringTool.Calculator.cluster_centers_of_gravity(HAClusteringTool.clustering_V2_2(get_detectedPoints(device), limit, 0.8, withWeight=True)) ], limit))
         print(detectedPoints_)
         print()
         scatter._offsets3d = tuple(list(x) for x in zip(*detectedPoints_)) if len(detectedPoints_) != 0 else ([], [], [])
@@ -556,11 +556,11 @@ if __name__ == '__main__':
       def update_matplotlibAnimation_SOP_111(frame, scatter: matplotlib.collections.PathCollection) -> matplotlib.collections.PathCollection:
         # os.system("cls")
         detectedPoints = get_detectedPoints(device)
-        detectedPoints_ = IntegrationTool.Calculator.cluster_centers(IntegrationTool.pairing([detectedPoints, 
-                    IntegrationTool.Calculator.cluster_centers(IntegrationTool.clustering_V1(detectedPoints, limit)), 
-                    IntegrationTool.Calculator.cluster_centers(IntegrationTool.clustering_V2_1(detectedPoints, limit, 0.8)), 
-                    IntegrationTool.Calculator.cluster_centers(IntegrationTool.clustering_V2_2(detectedPoints, limit, 0.8)), 
-                    IntegrationTool.Calculator.cluster_centers_of_gravity(IntegrationTool.clustering_V2_2(detectedPoints, limit, 0.8, True))], limit))
+        detectedPoints_ = HAClusteringTool.Calculator.cluster_centers(HAClusteringTool.pairing([detectedPoints, 
+                    HAClusteringTool.Calculator.cluster_centers(HAClusteringTool.clustering_V1(detectedPoints, limit)), 
+                    HAClusteringTool.Calculator.cluster_centers(HAClusteringTool.clustering_V2_1(detectedPoints, limit, 0.8)), 
+                    HAClusteringTool.Calculator.cluster_centers(HAClusteringTool.clustering_V2_2(detectedPoints, limit, 0.8)), 
+                    HAClusteringTool.Calculator.cluster_centers_of_gravity(HAClusteringTool.clustering_V2_2(detectedPoints, limit, 0.8, True))], limit))
         # print(detectedPoints, end="\n\n\n")
         # print(detectedPoints_, end="\n\n\n")
         scatter._offsets3d = tuple(list(x) for x in zip(*detectedPoints_)) if len(detectedPoints_) != 0 else ([], [], [])
@@ -586,10 +586,10 @@ if __name__ == '__main__':
         detectedPoints = filter_points(get_detectedPoints(device), [-1, 1], [0, 1.5], [-1, 1])
         detectedPoints_ = [detectedPoints]
         try:
-          detectedPoints_.append(IntegrationTool.Calculator.cluster_centers(IntegrationTool.clustering_V1(detectedPoints, limit)))
-          detectedPoints_.append(IntegrationTool.Calculator.cluster_centers(IntegrationTool.clustering_V2_1(detectedPoints, limit, 0.8)))
-          detectedPoints_.append(IntegrationTool.Calculator.cluster_centers(IntegrationTool.clustering_V2_2(detectedPoints, limit, 0.8)))
-          detectedPoints_.append(IntegrationTool.Calculator.cluster_centers_of_gravity(IntegrationTool.clustering_V2_2(detectedPoints, limit, 0.8, True)))
+          detectedPoints_.append(HAClusteringTool.Calculator.cluster_centers(HAClusteringTool.clustering_V1(detectedPoints, limit)))
+          detectedPoints_.append(HAClusteringTool.Calculator.cluster_centers(HAClusteringTool.clustering_V2_1(detectedPoints, limit, 0.8)))
+          detectedPoints_.append(HAClusteringTool.Calculator.cluster_centers(HAClusteringTool.clustering_V2_2(detectedPoints, limit, 0.8)))
+          detectedPoints_.append(HAClusteringTool.Calculator.cluster_centers_of_gravity(HAClusteringTool.clustering_V2_2(detectedPoints, limit, 0.8, True)))
         except ValueError:
           pass
         except ZeroDivisionError:
@@ -597,7 +597,7 @@ if __name__ == '__main__':
 
         x_range, y_range, z_range = [-1.5, 1.5], [0, 1.5], [-1, 1]
 
-        target = filter_points(IntegrationTool.Calculator.cluster_centers(IntegrationTool.pairing(detectedPoints_, limit, useVirtualPoints=True)), x_range, y_range, z_range)
+        target = filter_points(HAClusteringTool.Calculator.cluster_centers(HAClusteringTool.pairing(detectedPoints_, limit, useVirtualPoints=True)), x_range, y_range, z_range)
 
         axes.clear()
         axes.set_xlim([-.5, 1.5])
@@ -636,7 +636,7 @@ if __name__ == '__main__':
       min_distance = float('inf')
       nearest = None
       for point in points:
-        distance = IntegrationTool.Calculator.distance(target_point, point)
+        distance = HAClusteringTool.Calculator.distance(target_point, point)
         if distance < min_distance:
           min_distance, nearest = distance, point
       return nearest
@@ -665,23 +665,23 @@ if __name__ == '__main__':
             detectedPoints = get_detectedPoints(self.device)
             detectedPoints_with_clustering = [get_detectedPoints(self.device)]
             try:
-              detectedPoints_with_clustering.append(IntegrationTool.Calculator.cluster_centers(IntegrationTool.clustering_V1(detectedPoints, self.limit)))
-              detectedPoints_with_clustering.append(IntegrationTool.Calculator.cluster_centers(IntegrationTool.clustering_V2_1(detectedPoints, self.limit, 0.8)))
-              detectedPoints_with_clustering.append(IntegrationTool.Calculator.cluster_centers(IntegrationTool.clustering_V2_2(detectedPoints, self.limit, 0.8)))
-              detectedPoints_with_clustering.append(IntegrationTool.Calculator.cluster_centers_of_gravity(IntegrationTool.clustering_V2_2(detectedPoints, self.limit, 0.8, True)))
+              detectedPoints_with_clustering.append(HAClusteringTool.Calculator.cluster_centers(HAClusteringTool.clustering_V1(detectedPoints, self.limit)))
+              detectedPoints_with_clustering.append(HAClusteringTool.Calculator.cluster_centers(HAClusteringTool.clustering_V2_1(detectedPoints, self.limit, 0.8)))
+              detectedPoints_with_clustering.append(HAClusteringTool.Calculator.cluster_centers(HAClusteringTool.clustering_V2_2(detectedPoints, self.limit, 0.8)))
+              detectedPoints_with_clustering.append(HAClusteringTool.Calculator.cluster_centers_of_gravity(HAClusteringTool.clustering_V2_2(detectedPoints, self.limit, 0.8, True)))
             except ValueError:
               pass
             except ZeroDivisionError:
               pass
 
-            self.target = nearestPoint(filter_points(IntegrationTool.Calculator.cluster_centers(IntegrationTool.pairing(detectedPoints_with_clustering, self.limit, useVirtualPoints=True)), self.x_range, self.y_range, self.z_range))
+            self.target = nearestPoint(filter_points(HAClusteringTool.Calculator.cluster_centers(HAClusteringTool.pairing(detectedPoints_with_clustering, self.limit, useVirtualPoints=True)), self.x_range, self.y_range, self.z_range))
 
             # detectedPoints = get_detectedPoints(self.device)
-            # detectedPoints = IntegrationTool.Calculator.cluster_centers(IntegrationTool.pairing([detectedPoints, 
-            #             IntegrationTool.Calculator.cluster_centers(IntegrationTool.clustering_V1(detectedPoints, self.limit)), 
-            #             IntegrationTool.Calculator.cluster_centers(IntegrationTool.clustering_V2_1(detectedPoints, self.limit, 0.8)), 
-            #             IntegrationTool.Calculator.cluster_centers(IntegrationTool.clustering_V2_2(detectedPoints, self.limit, 0.8)), 
-            #             IntegrationTool.Calculator.cluster_centers_of_gravity(IntegrationTool.clustering_V2_2(detectedPoints, self.limit, 0.8, True))], self.limit))
+            # detectedPoints = HAClusteringTool.Calculator.cluster_centers(HAClusteringTool.pairing([detectedPoints, 
+            #             HAClusteringTool.Calculator.cluster_centers(HAClusteringTool.clustering_V1(detectedPoints, self.limit)), 
+            #             HAClusteringTool.Calculator.cluster_centers(HAClusteringTool.clustering_V2_1(detectedPoints, self.limit, 0.8)), 
+            #             HAClusteringTool.Calculator.cluster_centers(HAClusteringTool.clustering_V2_2(detectedPoints, self.limit, 0.8)), 
+            #             HAClusteringTool.Calculator.cluster_centers_of_gravity(HAClusteringTool.clustering_V2_2(detectedPoints, self.limit, 0.8, True))], self.limit))
             # self.target = nearestPoint(filter_points(detectedPoints),
             #             [-1, 1], [0, 2], [-1, 1])
             # print(self.ttl, self.earlier)
@@ -773,23 +773,23 @@ if __name__ == '__main__':
         # print(f"{Logging.formatted_time(datetime.timezone.utc, '%Y-%m-%d %H:%M:%S.%f')}: [{detectedPoints}]")
         detectedPoints_with_clustering = [detectedPoints]
         try:
-          detectedPoints_with_clustering.append(IntegrationTool.Calculator.cluster_centers(IntegrationTool.clustering_V1(detectedPoints, limit)))
-          detectedPoints_with_clustering.append(IntegrationTool.Calculator.cluster_centers(IntegrationTool.clustering_V2_1(detectedPoints, limit, 0.8)))
-          detectedPoints_with_clustering.append(IntegrationTool.Calculator.cluster_centers(IntegrationTool.clustering_V2_2(detectedPoints, limit, 0.8)))
-          detectedPoints_with_clustering.append(IntegrationTool.Calculator.cluster_centers_of_gravity(IntegrationTool.clustering_V2_2(detectedPoints, limit, 0.8, True)))
+          detectedPoints_with_clustering.append(HAClusteringTool.Calculator.cluster_centers(HAClusteringTool.clustering_V1(detectedPoints, limit)))
+          detectedPoints_with_clustering.append(HAClusteringTool.Calculator.cluster_centers(HAClusteringTool.clustering_V2_1(detectedPoints, limit, 0.8)))
+          detectedPoints_with_clustering.append(HAClusteringTool.Calculator.cluster_centers(HAClusteringTool.clustering_V2_2(detectedPoints, limit, 0.8)))
+          detectedPoints_with_clustering.append(HAClusteringTool.Calculator.cluster_centers_of_gravity(HAClusteringTool.clustering_V2_2(detectedPoints, limit, 0.8, True)))
         except ValueError:
           pass
         except ZeroDivisionError:
           pass
 
-        target = nearestPoint(filter_points(IntegrationTool.Calculator.cluster_centers(IntegrationTool.pairing(detectedPoints_with_clustering, limit, useVirtualPoints=True)), x_range, y_range, z_range))
+        target = nearestPoint(filter_points(HAClusteringTool.Calculator.cluster_centers(HAClusteringTool.pairing(detectedPoints_with_clustering, limit, useVirtualPoints=True)), x_range, y_range, z_range))
 
         # detectedPoints = get_detectedPoints(self.device)
-        # detectedPoints = IntegrationTool.Calculator.cluster_centers(IntegrationTool.pairing([detectedPoints, 
-        #             IntegrationTool.Calculator.cluster_centers(IntegrationTool.clustering_V1(detectedPoints, self.limit)), 
-        #             IntegrationTool.Calculator.cluster_centers(IntegrationTool.clustering_V2_1(detectedPoints, self.limit, 0.8)), 
-        #             IntegrationTool.Calculator.cluster_centers(IntegrationTool.clustering_V2_2(detectedPoints, self.limit, 0.8)), 
-        #             IntegrationTool.Calculator.cluster_centers_of_gravity(IntegrationTool.clustering_V2_2(detectedPoints, self.limit, 0.8, True))], self.limit))
+        # detectedPoints = HAClusteringTool.Calculator.cluster_centers(HAClusteringTool.pairing([detectedPoints, 
+        #             HAClusteringTool.Calculator.cluster_centers(HAClusteringTool.clustering_V1(detectedPoints, self.limit)), 
+        #             HAClusteringTool.Calculator.cluster_centers(HAClusteringTool.clustering_V2_1(detectedPoints, self.limit, 0.8)), 
+        #             HAClusteringTool.Calculator.cluster_centers(HAClusteringTool.clustering_V2_2(detectedPoints, self.limit, 0.8)), 
+        #             HAClusteringTool.Calculator.cluster_centers_of_gravity(HAClusteringTool.clustering_V2_2(detectedPoints, self.limit, 0.8, True))], self.limit))
         # self.target = nearestPoint(filter_points(detectedPoints),
         #             [-1, 1], [0, 2], [-1, 1])
         # print(self.ttl, self.earlier)

@@ -3,6 +3,6 @@ Lib/
 Scripts/
 share/
 __pycache__/
-Log/*.log
+Logging/*.log
 Record/*.bin
 Test/
