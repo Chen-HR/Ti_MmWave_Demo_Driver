@@ -11,10 +11,13 @@ class Logger:
     self.echo = echo
 
   def log(self, event: str, level: str, message: str):
-    with open(file=self.fileName, mode='a+') as file:
-      output = "[{prefix}] <{event}> ({level}) : {message}".format(prefix=formatted_time(), event=event, level=level, message=message)
-      file.write(output + '\n')
-      if self.echo: print(output)
+    try:
+      with open(file=self.fileName, mode='a+') as file:
+        output = "[{prefix}] <{event}> ({level}) : {message}".format(prefix=formatted_time(), event=event, level=level, message=message)
+        file.write(output + '\n')
+        if self.echo: print(output)
+    except NameError as nameError:
+      if self.echo: print(nameError)
 
 if __name__ == '__main__':
   LoggerTester = Logger(fileName="LoggerTester.log")
