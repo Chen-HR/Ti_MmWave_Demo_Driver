@@ -24,14 +24,14 @@ if __name__ == '__main__':
   import datetime
 
 # %% 
-class Ti_mmWave:
+class Ti_MmWave:
 
   def __init__(self, platform: str, Ctrl_port_name: str, Data_port_name: str, Ctrl_port_baudrate: int = 115200, Data_port_baudrate: int = 921600, Send_timeInterval: int | float | None = 0.025, Buffering_timeInterval: int | float | None = 0.05, Parse_timeInterval: int | float | None = 0.2, log_file: str | None = None, log_echo: bool = False, log_enable: bool = False):
 
     self.platform = platform
 
     self.log_enable = log_enable
-    if self.log_enable: self.logger = Logging.Logger(log_file if log_file is not None else "Log/Ti_mmWave.log", log_echo)
+    if self.log_enable: self.logger = Logging.Logger(log_file if log_file is not None else "Log/Ti_MmWave.log", log_echo)
 
     self.Ctrl_port_baudrate = Ctrl_port_baudrate
     self.Ctrl_port = serial.Serial(port=Ctrl_port_name, baudrate=Ctrl_port_baudrate)
@@ -75,7 +75,7 @@ class Ti_mmWave:
     if self.log_enable: self.logger.log(event="{}.deleting".format(self.__str__()), level="infomation", message="Delete completed")
 
   def __str__(self) -> str:
-    return "Ti_mmWave('{platform}', '{Ctrl_port}', '{Data_port}', {Ctrl_port_baudrate}, {Data_port_baudrate})".format(platform=self.platform, Ctrl_port=self.Ctrl_port.name, Data_port=self.Data_port.name, Ctrl_port_baudrate=self.Ctrl_port_baudrate, Data_port_baudrate=self.Data_port_baudrate)
+    return "Ti_MmWave('{platform}', '{Ctrl_port}', '{Data_port}', {Ctrl_port_baudrate}, {Data_port_baudrate})".format(platform=self.platform, Ctrl_port=self.Ctrl_port.name, Data_port=self.Data_port.name, Ctrl_port_baudrate=self.Ctrl_port_baudrate, Data_port_baudrate=self.Data_port_baudrate)
   
   # TODO: support `with mmWave(...) as mmWaveDevice:`
 
@@ -319,7 +319,7 @@ if __name__ == '__main__':
       self.z = AxisLimit_3d._AxisLimit(min if z_min is None else z_min, max if z_max is None else z_max)
   detectionLimit = AxisLimit_3d(-5, 5, y_min=0, y_max=5)
 
-  device = Ti_mmWave(platform="xWR14xx", Ctrl_port_name="COM3", Data_port_name="COM4", Ctrl_port_baudrate=115200, Data_port_baudrate=921600, Parse_timeInterval=0.5)
+  device = Ti_MmWave(platform="xWR14xx", Ctrl_port_name="COM3", Data_port_name="COM4", Ctrl_port_baudrate=115200, Data_port_baudrate=921600, Parse_timeInterval=0.5)
   print("configured device...")
   device.sensorStop()
   device.Ctrl_Load_file("Profile\Profile-4.cfg")
