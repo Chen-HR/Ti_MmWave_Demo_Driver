@@ -1,6 +1,8 @@
 import datetime
 
-formatted_time = lambda timezone, format: datetime.datetime.now(tz=timezone).strftime(format)
+# formatted_time = lambda timezone, format: datetime.datetime.now(tz=timezone).strftime(format)
+def formatted_time(timezone: datetime.tzinfo = datetime.timezone.utc, format: str = "%Y-%m-%d %H:%M:%S.%f") -> str: 
+  return datetime.datetime.now(timezone).strftime(format)
 
 class Logger:
 
@@ -10,7 +12,7 @@ class Logger:
 
   def log(self, event: str, level: str, message: str):
     with open(file=self.fileName, mode='a+') as file:
-      output = "[{prefix}] <{event}> ({level}) : {message}".format(prefix=formatted_time(datetime.timezone.utc, "%Y-%m-%d %H:%M:%S.%f"), event=event, level=level, message=message)
+      output = "[{prefix}] <{event}> ({level}) : {message}".format(prefix=formatted_time(), event=event, level=level, message=message)
       file.write(output + '\n')
       if self.echo: print(output)
 

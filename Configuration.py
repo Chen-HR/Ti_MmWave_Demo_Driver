@@ -4,9 +4,10 @@ import re
 import copy
 
 try:
+  from . import Logging
+except ImportError:
   import Logging
-except ModuleNotFoundError:
-  from Ti_mmWave_Demo_Driver import Logging
+
 # %%
 class Configuration_2_1_0:
   """reference to `MMWAVE SDK User Guide`
@@ -1596,36 +1597,36 @@ class Configuration_2_1_0:
       Args:
         platform (str): Platform type, only accepts "xWR14xx" and "xWR16xx"
       """
-      if platform != "xWR14xx" and platform != "xWR16xx": raise ValueError("Unrecognized platform: {platform}".format(platform=platform))
+      if platform != "xWR14xx" and platform != "xWR16xx":               raise ValueError("Unrecognized platform: {platform}".format(platform=platform))
       self.platform: str = platform
-      self.sensorStart                    = Configuration_2_1_0.Command.SensorStart()
-      self.flushCfg                       = Configuration_2_1_0.Command.FlushCfg()
-      self.dfeDataOutputMode              = Configuration_2_1_0.Command.DfeDataOutputMode()
-      self.channelCfg                     = Configuration_2_1_0.Command.ChannelCfg()
-      self.adcCfg                         = Configuration_2_1_0.Command.AdcCfg()
-      self.adcbufCfg                      = Configuration_2_1_0.Command.AdcbufCfg()
-      self.profileCfg                     = Configuration_2_1_0.Command.ProfileCfg()
-      if platform == "xWR16xx": self.bpmCfg                         = Configuration_2_1_0.Command.BpmCfg()
-      self.lowPower                       = Configuration_2_1_0.Command.LowPower()
-      self.frameCfg                       = Configuration_2_1_0.Command.FrameCfg()
-      self.advFrameCfg                    = Configuration_2_1_0.Command.AdvFrameCfg()
-      self.subFrameCfg                    = Configuration_2_1_0.Command.SubFrameCfg()
-      self.guiMonitor                     = Configuration_2_1_0.Command.GuiMonitor()
-      self.cfarCfg                        = Configuration_2_1_0.Command.CfarCfg()
-      self.peakGrouping                   = Configuration_2_1_0.Command.PeakGrouping()
-      self.multiObjBeamForming            = Configuration_2_1_0.Command.MultiObjBeamForming()
-      self.calibDcRangeSig                = Configuration_2_1_0.Command.CalibDcRangeSig()
-      if platform == "xWR16xx": self.extendedMaxVelocity            = Configuration_2_1_0.Command.ExtendedMaxVelocity()
-      self.clutterRemoval                 = Configuration_2_1_0.Command.ClutterRemoval()
-      self.compRangeBiasAndRxChanPhase    = Configuration_2_1_0.Command.CompRangeBiasAndRxChanPhase()
-      self.measureRangeBiasAndRxChanPhase = Configuration_2_1_0.Command.MeasureRangeBiasAndRxChanPhase()
-      if platform == "xWR16xx": self.nearFieldCfg                   = Configuration_2_1_0.Command.NearFieldCfg()
-      self.cQRxSatMonitor                 = Configuration_2_1_0.Command.CQRxSatMonitor()
-      self.cQSigImgMonitor                = Configuration_2_1_0.Command.CQSigImgMonitor()
-      self.analogMonitor                  = Configuration_2_1_0.Command.AnalogMonitor()
-      if platform == "xWR16xx": self.lvdsStreamCfg                  = Configuration_2_1_0.Command.LvdsStreamCfg()
-      self.sensorStop                     = Configuration_2_1_0.Command.SensorStop()
-      self.chirpCfg_list: list[Configuration_2_1_0.Command.ChirpCfg] = list()
+      self.sensorStart                                                = Configuration_2_1_0.Command.SensorStart()
+      self.flushCfg                                                   = Configuration_2_1_0.Command.FlushCfg()
+      self.dfeDataOutputMode                                          = Configuration_2_1_0.Command.DfeDataOutputMode()
+      self.channelCfg                                                 = Configuration_2_1_0.Command.ChannelCfg()
+      self.adcCfg                                                     = Configuration_2_1_0.Command.AdcCfg()
+      self.adcbufCfg                                                  = Configuration_2_1_0.Command.AdcbufCfg()
+      self.profileCfg                                                 = Configuration_2_1_0.Command.ProfileCfg()
+      if platform == "xWR16xx": self.bpmCfg                           = Configuration_2_1_0.Command.BpmCfg()
+      self.lowPower                                                   = Configuration_2_1_0.Command.LowPower()
+      self.frameCfg                                                   = Configuration_2_1_0.Command.FrameCfg()
+      self.advFrameCfg                                                = Configuration_2_1_0.Command.AdvFrameCfg()
+      self.subFrameCfg                                                = Configuration_2_1_0.Command.SubFrameCfg()
+      self.guiMonitor                                                 = Configuration_2_1_0.Command.GuiMonitor()
+      self.cfarCfg                                                    = Configuration_2_1_0.Command.CfarCfg()
+      self.peakGrouping                                               = Configuration_2_1_0.Command.PeakGrouping()
+      self.multiObjBeamForming                                        = Configuration_2_1_0.Command.MultiObjBeamForming()
+      self.calibDcRangeSig                                            = Configuration_2_1_0.Command.CalibDcRangeSig()
+      if platform == "xWR16xx": self.extendedMaxVelocity              = Configuration_2_1_0.Command.ExtendedMaxVelocity()
+      self.clutterRemoval                                             = Configuration_2_1_0.Command.ClutterRemoval()
+      self.compRangeBiasAndRxChanPhase                                = Configuration_2_1_0.Command.CompRangeBiasAndRxChanPhase()
+      self.measureRangeBiasAndRxChanPhase                             = Configuration_2_1_0.Command.MeasureRangeBiasAndRxChanPhase()
+      if platform == "xWR16xx": self.nearFieldCfg                     = Configuration_2_1_0.Command.NearFieldCfg()
+      self.cQRxSatMonitor                                             = Configuration_2_1_0.Command.CQRxSatMonitor()
+      self.cQSigImgMonitor                                            = Configuration_2_1_0.Command.CQSigImgMonitor()
+      self.analogMonitor                                              = Configuration_2_1_0.Command.AnalogMonitor()
+      if platform == "xWR16xx": self.lvdsStreamCfg                    = Configuration_2_1_0.Command.LvdsStreamCfg()
+      self.sensorStop                                                 = Configuration_2_1_0.Command.SensorStop()
+      self.chirpCfg_list: list[Configuration_2_1_0.Command.ChirpCfg]  = list()
     def parse(self, commandLine: str) -> None:
       """parse command line
 
@@ -1633,34 +1634,34 @@ class Configuration_2_1_0:
         commandLine (str): one line of command (a command)
       """
       commandLine = commandLine.strip()
-      if commandLine.startswith("sensorStart"): self.sensorStart.parse(commandLine)
-      if commandLine.startswith("flushCfg"): self.flushCfg.parse(commandLine)
-      if commandLine.startswith("dfeDataOutputMode"): self.dfeDataOutputMode.parse(commandLine)
-      if commandLine.startswith("channelCfg"): self.channelCfg.parse(commandLine)
-      if commandLine.startswith("adcCfg"): self.adcCfg.parse(commandLine)
-      if commandLine.startswith("adcbufCfg"): self.adcbufCfg.parse(commandLine)
-      if commandLine.startswith("profileCfg"): self.profileCfg.parse(commandLine)
-      if commandLine.startswith("bpmCfg"): self.bpmCfg.parse(commandLine)
-      if commandLine.startswith("lowPower"): self.lowPower.parse(commandLine)
-      if commandLine.startswith("frameCfg"): self.frameCfg.parse(commandLine)
-      if commandLine.startswith("advFrameCfg"): self.advFrameCfg.parse(commandLine)
-      if commandLine.startswith("subFrameCfg"): self.subFrameCfg.parse(commandLine)
-      if commandLine.startswith("guiMonitor"): self.guiMonitor.parse(commandLine)
-      if commandLine.startswith("cfarCfg"): self.cfarCfg.parse(commandLine)
-      if commandLine.startswith("peakGrouping"): self.peakGrouping.parse(commandLine)
-      if commandLine.startswith("multiObjBeamForming"): self.multiObjBeamForming.parse(commandLine)
-      if commandLine.startswith("calibDcRangeSig"): self.calibDcRangeSig.parse(commandLine)
-      if commandLine.startswith("extendedMaxVelocity"): self.extendedMaxVelocity.parse(commandLine)
-      if commandLine.startswith("clutterRemoval"): self.clutterRemoval.parse(commandLine)
-      if commandLine.startswith("compRangeBiasAndRxChanPhase"): self.compRangeBiasAndRxChanPhase.parse(commandLine)
-      if commandLine.startswith("measureRangeBiasAndRxChanPhase"): self.measureRangeBiasAndRxChanPhase.parse(commandLine)
-      if commandLine.startswith("nearFieldCfg"): self.nearFieldCfg.parse(commandLine)
-      if commandLine.startswith("CQRxSatMonitor"): self.cQRxSatMonitor.parse(commandLine)
-      if commandLine.startswith("CQSigImgMonitor"): self.cQSigImgMonitor.parse(commandLine)
-      if commandLine.startswith("analogMonitor"): self.analogMonitor.parse(commandLine)
-      if commandLine.startswith("lvdsStreamCfg"): self.lvdsStreamCfg.parse(commandLine)
-      if commandLine.startswith("sensorStop"): self.sensorStop.parse(commandLine)
-      if commandLine.startswith("chirpCfg"): 
+      if commandLine.startswith("sensorStart"):                    self.sensorStart                    .parse(commandLine)
+      if commandLine.startswith("flushCfg"):                       self.flushCfg                       .parse(commandLine)
+      if commandLine.startswith("dfeDataOutputMode"):              self.dfeDataOutputMode              .parse(commandLine)
+      if commandLine.startswith("channelCfg"):                     self.channelCfg                     .parse(commandLine)
+      if commandLine.startswith("adcCfg"):                         self.adcCfg                         .parse(commandLine)
+      if commandLine.startswith("adcbufCfg"):                      self.adcbufCfg                      .parse(commandLine)
+      if commandLine.startswith("profileCfg"):                     self.profileCfg                     .parse(commandLine)
+      if commandLine.startswith("bpmCfg"):                         self.bpmCfg                         .parse(commandLine)
+      if commandLine.startswith("lowPower"):                       self.lowPower                       .parse(commandLine)
+      if commandLine.startswith("frameCfg"):                       self.frameCfg                       .parse(commandLine)
+      if commandLine.startswith("advFrameCfg"):                    self.advFrameCfg                    .parse(commandLine)
+      if commandLine.startswith("subFrameCfg"):                    self.subFrameCfg                    .parse(commandLine)
+      if commandLine.startswith("guiMonitor"):                     self.guiMonitor                     .parse(commandLine)
+      if commandLine.startswith("cfarCfg"):                        self.cfarCfg                        .parse(commandLine)
+      if commandLine.startswith("peakGrouping"):                   self.peakGrouping                   .parse(commandLine)
+      if commandLine.startswith("multiObjBeamForming"):            self.multiObjBeamForming            .parse(commandLine)
+      if commandLine.startswith("calibDcRangeSig"):                self.calibDcRangeSig                .parse(commandLine)
+      if commandLine.startswith("extendedMaxVelocity"):            self.extendedMaxVelocity            .parse(commandLine)
+      if commandLine.startswith("clutterRemoval"):                 self.clutterRemoval                 .parse(commandLine)
+      if commandLine.startswith("compRangeBiasAndRxChanPhase"):    self.compRangeBiasAndRxChanPhase    .parse(commandLine)
+      if commandLine.startswith("measureRangeBiasAndRxChanPhase"): self.measureRangeBiasAndRxChanPhase .parse(commandLine)
+      if commandLine.startswith("nearFieldCfg"):                   self.nearFieldCfg                   .parse(commandLine)
+      if commandLine.startswith("CQRxSatMonitor"):                 self.cQRxSatMonitor                 .parse(commandLine)
+      if commandLine.startswith("CQSigImgMonitor"):                self.cQSigImgMonitor                .parse(commandLine)
+      if commandLine.startswith("analogMonitor"):                  self.analogMonitor                  .parse(commandLine)
+      if commandLine.startswith("lvdsStreamCfg"):                  self.lvdsStreamCfg                  .parse(commandLine)
+      if commandLine.startswith("sensorStop"):                     self.sensorStop                     .parse(commandLine)
+      if commandLine.startswith("chirpCfg"):                                   
         txAntennaEnableMask_list = [chirpCfg.txAntennaEnableMask for chirpCfg in self.chirpCfg_list]
         chirpCfg = Configuration_2_1_0.Command.ChirpCfg()
         chirpCfg.parse(commandLine)
@@ -1715,12 +1716,10 @@ class Configuration_2_1_0:
         commandLines[i] = re.sub(r'\s+', ' ', commandLines[i].strip())
       return commandLines
 
-  # commandParameters_backup = dict()
-
   class Parameter:
     """Device configuration parameters
     """
-    def __init__(self, platform: str) -> None: # TODO: add self.platform
+    def __init__(self, platform: str, log_file: str | None = None, log_echo: bool = False, log_enable: bool = False) -> None:
       """Initialize all parameters
 
       Args:
@@ -1741,7 +1740,8 @@ class Configuration_2_1_0:
       self.maxRange = None 
       self.maxVelocity = None 
       self.thresholdScaleDb = None 
-      self.logger = Logging.Logger(fileName="Log/Configuration_2_1_0.log")
+      self.log_enable = log_enable
+      if self.log_enable: self.logger = Logging.Logger(log_file if log_file is not None else "Log/Configuration_2_1_0.log", log_echo)
 
     def parse(self, command, verificationLevel: str="Error") -> None: # TODO: trans to use `setter` and `getter`
       """Parse the command to get the configured parameters
@@ -1776,7 +1776,7 @@ class Configuration_2_1_0:
           self.dfeDataOutputMode = command.dfeDataOutputMode.modeType
         except TypeError:
           Missing_Command = True
-          self.logger.log(event="Configuration_2_1_0.Parameter.parse", level=verificationLevel, message="Missing command: `dfeDataOutputMode`")
+          if self.log_enable: self.logger.log(event="Configuration_2_1_0.Parameter.parse", level=verificationLevel, message="Missing command: `dfeDataOutputMode`")
 
       if not Missing_Command: 
         try:
@@ -1785,7 +1785,7 @@ class Configuration_2_1_0:
           self.numVirtualAntennas = self.numRxAnt * self.numTxAnt
         except TypeError:
           Missing_Command = True
-          self.logger.log(event="Configuration_2_1_0.Parameter.parse", level=verificationLevel, message="Missing command: `channelCfg`")
+          if self.log_enable: self.logger.log(event="Configuration_2_1_0.Parameter.parse", level=verificationLevel, message="Missing command: `channelCfg`")
 
       if not Missing_Command: 
         try:
@@ -1799,7 +1799,7 @@ class Configuration_2_1_0:
           digOutSampleRate = command.profileCfg.digOutSampleRate
         except TypeError:
           Missing_Command = True
-          self.logger.log(event="Configuration_2_1_0.Parameter.parse", level=verificationLevel, message="Missing command: `profileCfg`")
+          if self.log_enable: self.logger.log(event="Configuration_2_1_0.Parameter.parse", level=verificationLevel, message="Missing command: `profileCfg`")
 
       if not Missing_Command: 
         try:
@@ -1811,7 +1811,7 @@ class Configuration_2_1_0:
           numChirpsPerFrame = (chirpEndIdx - chirpStartIdx + 1) * numLoops
         except TypeError:
           Missing_Command = True
-          self.logger.log(event="Configuration_2_1_0.Parameter.parse", level=verificationLevel, message="Missing command: `frameCfg`")
+          if self.log_enable: self.logger.log(event="Configuration_2_1_0.Parameter.parse", level=verificationLevel, message="Missing command: `frameCfg`")
 
       if not Missing_Command: 
         try:
@@ -1821,7 +1821,7 @@ class Configuration_2_1_0:
             self.thresholdScaleDb = (command.cfarCfg.ThresholdScale * 6) // (256 * self.numVirtualAntennas)
         except TypeError:
           Missing_Command = True
-          self.logger.log(event="Configuration_2_1_0.Parameter.parse", level=verificationLevel, message="Missing command: `cfarCfg`")
+          if self.log_enable: self.logger.log(event="Configuration_2_1_0.Parameter.parse", level=verificationLevel, message="Missing command: `cfarCfg`")
 
       if not Missing_Command: 
         self.numDopplerBins = numChirpsPerFrame / self.numTxAnt
@@ -1831,9 +1831,9 @@ class Configuration_2_1_0:
         self.dopplerResolutionMps = 3e8 / (2 * startFreq * 1e9 * (idleTime + rampEndTime) * 1e-6 * self.numDopplerBins * self.numTxAnt)
         self.maxRange = (300 * 0.9 * digOutSampleRate)/(2 * freqSlopeConst * 1e3)
         self.maxVelocity = 3e8 / (4 * startFreq * 1e9 * (idleTime + rampEndTime) * 1e-6 * self.numTxAnt)
-        self.logger.log(event="Configuration_2_1_0.Parameter.parse", level="information", message="parse configParameters success")
+        if self.log_enable: self.logger.log(event="Configuration_2_1_0.Parameter.parse", level="information", message="parse configParameters success")
 
-  def __init__(self, platform: str) -> None:
+  def __init__(self, platform: str, log_file: str | None = None, log_echo: bool = False, log_enable: bool = False) -> None:
     """Initialize configuration data
 
     Args:
@@ -1841,8 +1841,9 @@ class Configuration_2_1_0:
     """
     self.platform: str = platform
     self.command: Configuration_2_1_0.Command = Configuration_2_1_0.Command(platform)
-    self.parameter: Configuration_2_1_0.Parameter = Configuration_2_1_0.Parameter(platform) 
-    self.logger = Logging.Logger(fileName="Log/Configuration_2_1_0.log")
+    self.parameter: Configuration_2_1_0.Parameter = Configuration_2_1_0.Parameter(platform, log_file, log_echo, log_enable) 
+    self.log_enable = log_enable
+    if self.log_enable: self.logger = Logging.Logger(log_file if log_file is not None else "Log/Configuration_2_1_0.log", log_echo)
 
   def parse_commandLine(self, commandLine: str) -> None:
     """parse command line
@@ -1851,7 +1852,7 @@ class Configuration_2_1_0:
       commandLine (str): one line of command (a command)
     """
     commandLine = commandLine.strip()
-    parts: list[str] = commandLine.split(" ")
+    parts: list[str] = commandLine.split(" ") 
     self.command.parse(commandLine)
     if parts[0] == "sensorStart" or parts[0] == "dfeDataOutputMode" or parts[0] == "channelCfg" or parts[0] == "profileCfg" or parts[0] == "frameCfg" or parts[0] == "cfarCfg":
       self.parameter.parse(self.command)

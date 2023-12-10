@@ -6,4 +6,3 @@ __pycache__/
 Log/*.log
 Record/*.bin
 Test/
-Notify.py

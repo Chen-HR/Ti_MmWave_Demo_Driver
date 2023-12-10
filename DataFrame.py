@@ -2,12 +2,13 @@
 import math
 import copy
 
-import numpy # numpy-1.26.0
+import numpy # Version: 1.26.0
 
 try:
+  from . import Logging
+except ImportError:
   import Logging
-except ModuleNotFoundError:
-  from Ti_mmWave_Demo_Driver import Logging
+
 # %%
 class Converter:
   margeUint8_array = lambda num_of_uint8: [2**(8*i) for i in range(num_of_uint8)]
@@ -39,6 +40,8 @@ class DataFrame:
     def __init__(self):
       self.infomation: DataFrame.DetectedObjects.DetetedInfomation | None = DataFrame.DetectedObjects.DetetedInfomation()
       self.Objects: list[DataFrame.DetectedObjects.DetectedObj] | None = list()
+    def detectedPoints(self):
+      return [(Converter.QFormat.parse(self.infomation.xyzQFormat, detectedObj.x), Converter.QFormat.parse(self.infomation.xyzQFormat, detectedObj.y), Converter.QFormat.parse(self.infomation.xyzQFormat, detectedObj.z)) for detectedObj in self.Objects]
 
   class LogMagRange:
     def __init__(self):
@@ -107,10 +110,11 @@ class DataFrame:
   magicWords: tuple[numpy.uint16] = (0x0102, 0x0304, 0x0506, 0x0708)
   magicBytes: tuple[numpy.uint8] = (0x02, 0x01, 0x04, 0x03, 0x06, 0x05, 0x08, 0x07)
 
-  def __init__(self, log: str | None = None) -> None:
+  def __init__(self, log_file: str | None = None, log_echo: bool = False, log_enable: bool = False) -> None:
     """Initialize DataFrame
     """
-    self.logger = Logging.Logger(log if log is not None else "Log/DataFrame.log")
+    self.log_enable = log_enable
+    if self.log_enable: self.logger = Logging.Logger(log_file if log_file is not None else "Log/DataFrame.log", log_echo)
 
     # header
     # self.magicWords: tuple[numpy.uint8] = (0x02, 0x01, 0x04, 0x03, 0x06, 0x05, 0x08, 0x07) # `self.magicWords` will be removed, and use `DataFrame.magicBytes` instead
@@ -136,16 +140,18 @@ class DataFrame:
 
     self.CRC32: numpy.uint32 | None = None
     self.iscomplete: bool = False
+  def detectedPoints(self):
+    return self.detectedObjects.detectedPoints()
 
   @staticmethod
-  def parse(dataByte: bytearray, log: str | None = None):
+  def parse(dataByte: bytearray, log_file: str | None = None, log_echo: bool = False, log_enable: bool = False):
     """Parse dataByte to get dataFrame
 
     Args:
       dataByte (bytearray): Parse data sources
       log (bool, optional): Enable logging to log. Defaults to False.
     """
-    logger = Logging.Logger(log if log is not None else "Log/DataFrame.log")
+    if log_enable: logger = Logging.Logger(log_file if log_file is not None else "Log/DataFrame.log", log_echo)
     dataFrame: DataFrame = DataFrame()
 
     # checke dataByte parse range
@@ -165,10 +171,10 @@ class DataFrame:
 
     # check index of frame start is correct
     if index is None: 
-      logger.log(event="DataFrame.parse", level="Error", message="DataFrame not found")
+      if log_enable: logger.log(event="DataFrame.parse", level="Error", message="DataFrame not found")
       return None, None
 
-    logger.log(event="DataFrame.parse", level="logging", message="magicBytes: {}".format(dataByte[index:index+len(DataFrame.magicBytes)]))
+    if log_enable: logger.log(event="DataFrame.parse", level="logging", message="magicBytes: {}".format(dataByte[index:index+len(DataFrame.magicBytes)]))
     # print("dataByte: {}".format(dataByte[index:index+len(DataFrame.magicBytes)]))
     # print("dataByte_uint8: {}".format(dataByte_uint8[index:index+len(DataFrame.magicBytes)]))
     # print("index: {}/{}".format(index, len(dataByte_uint8)))
@@ -194,7 +200,7 @@ class DataFrame:
       if platform == 0x00001600:
         dataFrame.subFrameNumber  , index = Converter.uint8_2_uint32(dataByte, index)
       # if log is not None:
-      if True:
+      if log_enable: 
         logger.log(event="DataFrame.parse", level="logging", message="DataFrame.version       : {}.{}.{}.{}".format(int((dataFrame.version&0xff000000)>>24), int((dataFrame.version&0x00ff0000)>16), int((dataFrame.version&0x0000ff00)>8), int((dataFrame.version&0x000000ff))))
         logger.log(event="DataFrame.parse", level="logging", message="DataFrame.totalPacketLen: {}".format(dataFrame.totalPacketLen))
         logger.log(event="DataFrame.parse", level="logging", message="DataFrame.platform      : {}".format(format(dataFrame.platform, 'x')))
@@ -205,13 +211,13 @@ class DataFrame:
         if platform == 0x00001600:
           logger.log(event="DataFrame.parse", level="logging", message="DataFrame.subFrameNumber: {}".format(dataFrame.subFrameNumber))
       length += 32 if platform == 0x00001600 else 28
-      logger.log(event="DataFrame.parse", level="logging", message="length: {}".format(length))
+      if log_enable: logger.log(event="DataFrame.parse", level="logging", message="length: {}".format(length))
 
       # check length of dataByte is enough
       # NOTE: when all item of `guiMonitor` is enabled, TLV only can get first 4 items
       # NOTE: The built-in buffer of serial(use `pyserial-3.5`) is only about 12kB, but rangeAzimuthHeatMap and rangeDopplerHeatMap may each occupy about 8kB
       if index + dataFrame.totalPacketLen - len(DataFrame.magicBytes) - length > len(dataByte):
-        logger.log(event="DataFrame.parse", level="Error", message="DataFrame is incomplete (index + total Packet Length - magicBytes length - length > length of dataByte)): {} + {} - {} - {} < {}\n{}".format(index, dataFrame.totalPacketLen, len(DataFrame.magicBytes), (32 if platform == 0x00001600 else 28), len(dataByte), dataByte))
+        if log_enable: logger.log(event="DataFrame.parse", level="Error", message="DataFrame is incomplete (index + total Packet Length - magicBytes length - length > length of dataByte)): {} + {} - {} - {} < {}\n{}".format(index, dataFrame.totalPacketLen, len(DataFrame.magicBytes), (32 if platform == 0x00001600 else 28), len(dataByte), dataByte))
         return None, None
 
       # record contents argument
@@ -225,7 +231,7 @@ class DataFrame:
         # read TLV header
         TLV_TypeId, index = Converter.uint8_2_uint32(dataByte, index)
         TLV_Length, index = Converter.uint8_2_uint32(dataByte, index) # bytes length of contents
-        if log is not None:
+        if log_enable: 
           logger.log(event="DataFrame.parse", level="logging", message="DataFrame.TLV[{}].TypeId: {}".format(TLV_index, TLV_TypeId))
           logger.log(event="DataFrame.parse", level="logging", message="DataFrame.TLV[{}].Length: {}".format(TLV_index, TLV_Length))
 
@@ -234,7 +240,7 @@ class DataFrame:
           # parse detectedObjects header
           dataFrame.detectedObjects.infomation.numDetetedObj, index = Converter.uint8_2_uint16(dataByte, index)
           dataFrame.detectedObjects.infomation.xyzQFormat   , index = Converter.uint8_2_uint16(dataByte, index)
-          if log is not None:
+          if log_enable: 
             logger.log(event="DataFrame.parse", level="logging", message="DataFrame.detectedObjects.infomation.numDetetedObj: {}".format(dataFrame.detectedObjects.infomation.numDetetedObj)) # TODO: check this with `dataFrame.data.numDetectedObj`
             logger.log(event="DataFrame.parse", level="logging", message="DataFrame.detectedObjects.infomation.xyzQFormat   : {}".format(dataFrame.detectedObjects.infomation.xyzQFormat   ))
           # parse detectedObjects list
@@ -247,7 +253,7 @@ class DataFrame:
             y         , index = Converter.uint8_2_int16(dataByte, index)
             z         , index = Converter.uint8_2_int16(dataByte, index)
             dataFrame.detectedObjects.Objects.append(dataFrame.detectedObjects.DetectedObj(rangeIdx, dopplerIdx, peakVal, x, y, z))
-            if log is not None: logger.log(event="DataFrame.parse", level="logging", message="DataFrame.detectedObjects.Objects[{index:{index_log10}d}]: ({rangeIdx:3d}, {dopplerIdx:3d}, {peakVal:3d}, {x:5d}, {y:5d}, {z:5d}) -> ({xQFormat:8.4f}, {yQFormat:8.4f}, {zQFormat:8.4f})".format(
+            if log_enable:  logger.log(event="DataFrame.parse", level="logging", message="DataFrame.detectedObjects.Objects[{index:{index_log10}d}]: ({rangeIdx:3d}, {dopplerIdx:3d}, {peakVal:3d}, {x:5d}, {y:5d}, {z:5d}) -> ({xQFormat:8.4f}, {yQFormat:8.4f}, {zQFormat:8.4f})".format(
               index=DetetedObj_index, 
               index_log10=int(math.log10(dataFrame.detectedObjects.infomation.numDetetedObj))+1, 
               rangeIdx=rangeIdx, dopplerIdx=dopplerIdx, peakVal=peakVal, x=x, y=y, z=z, 
@@ -256,7 +262,7 @@ class DataFrame:
               zQFormat=Converter.QFormat.parse(dataFrame.detectedObjects.infomation.xyzQFormat, z)))
           # check TLV length
           if 4 + (dataFrame.detectedObjects.infomation.numDetetedObj * 12) != TLV_Length: 
-            logger.log(event="DataFrame.parse.TLV", level="Warn", message="TLV(`detectedObjects`) length mismatch")
+            if log_enable: logger.log(event="DataFrame.parse.TLV", level="Warn", message="TLV(`detectedObjects`) length mismatch")
           length += 8 + 4 + (dataFrame.detectedObjects.infomation.numDetetedObj * 12)
           # print("index: {}/{}".format(index, len(dataByte_uint8)))
 
@@ -268,7 +274,7 @@ class DataFrame:
           for _ in range(numRangeBins):
             _logMagRange, index = Converter.uint8_2_uint16(dataByte, index)
             dataFrame.logMagRange.logMagRange.append(_logMagRange)
-          if log is not None: logger.log(event="DataFrame.parse", level="logging", message="DataFrame.logMagRange: {}".format(dataFrame.logMagRange.logMagRange))
+          if log_enable: logger.log(event="DataFrame.parse", level="logging", message="DataFrame.logMagRange: {}".format(dataFrame.logMagRange.logMagRange))
           length += 8 + TLV_Length
           # print("index: {}/{}".format(index, len(dataByte_uint8)))
 
@@ -279,7 +285,7 @@ class DataFrame:
           for _ in range(numRangeBins):
             _noiseProfile, index = Converter.uint8_2_uint16(dataByte, index)
             dataFrame.noiseProfile.noiseProfile.append(_noiseProfile)
-          if log is not None: logger.log(event="DataFrame.parse", level="logging", message="DataFrame.noiseProfile: {}".format(dataFrame.noiseProfile.noiseProfile))
+          if log_enable: logger.log(event="DataFrame.parse", level="logging", message="DataFrame.noiseProfile: {}".format(dataFrame.noiseProfile.noiseProfile))
           length += 8 + TLV_Length
           # print("index: {}/{}".format(index, len(dataByte_uint8)))
 
@@ -302,7 +308,7 @@ class DataFrame:
               imag, index = Converter.uint8_2_int16(dataByte, index)
               real, index = Converter.uint8_2_int16(dataByte, index)
               dataFrame.rangeAzimuthHeatMap.rangeAzimuthHeatMap.append(DataFrame.RangeAzimuthHeatMap.Cmplx16ImRe(imag, real))
-          if log is not None: logger.log(event="DataFrame.parse", level="logging", message="DataFrame.rangeAzimuthHeatMap: {}".format(str(dataFrame.rangeAzimuthHeatMap)))
+          if log_enable: logger.log(event="DataFrame.parse", level="logging", message="DataFrame.rangeAzimuthHeatMap: {}".format(str(dataFrame.rangeAzimuthHeatMap)))
           length += 8 + TLV_Length
           # print("index: {}/{}".format(index, len(dataByte_uint8)))
 
@@ -323,7 +329,7 @@ class DataFrame:
             for _ in range(TLV_Length//4):
               _rangeDopplerHeatMap, index = Converter.uint8_2_uint16(dataByte, index)
               dataFrame.rangeDopplerHeatMap.rangeDopplerHeatMap.append(_rangeDopplerHeatMap)
-          if log is not None: logger.log(event="DataFrame.parse", level="logging", message="DataFrame.rangeDopplerHeatMap: {}".format(dataFrame.rangeDopplerHeatMap.rangeDopplerHeatMap))
+          if log_enable: logger.log(event="DataFrame.parse", level="logging", message="DataFrame.rangeDopplerHeatMap: {}".format(dataFrame.rangeDopplerHeatMap.rangeDopplerHeatMap))
           length += 8 + TLV_Length
           # print("index: {}/{}".format(index, len(dataByte_uint8)))
 
@@ -335,7 +341,7 @@ class DataFrame:
           dataFrame.statsInfo.interChirpProcessingMargin, index = Converter.uint8_2_uint32(dataByte, index)
           dataFrame.statsInfo.activeFrameCPULoad        , index = Converter.uint8_2_uint32(dataByte, index)
           dataFrame.statsInfo.interFrameCPULoad         , index = Converter.uint8_2_uint32(dataByte, index)
-          if log is not None: 
+          if log_enable: 
             logger.log(event="DataFrame.parse", level="logging", message="DataFrame.statsInfo.interFrameProcessingTime  : {}".format(dataFrame.statsInfo.interFrameProcessingTime  ))
             logger.log(event="DataFrame.parse", level="logging", message="DataFrame.statsInfo.transmitOutputTime        : {}".format(dataFrame.statsInfo.transmitOutputTime        ))
             logger.log(event="DataFrame.parse", level="logging", message="DataFrame.statsInfo.interFrameProcessingMargin: {}".format(dataFrame.statsInfo.interFrameProcessingMargin))
@@ -356,7 +362,7 @@ class DataFrame:
         #   break
 
         else: 
-          logger.log(event="DataFrame.parse", level="Warn", message="Error TypeId: {}".format(TLV_TypeId))
+          if log_enable: logger.log(event="DataFrame.parse", level="Warn", message="Error TypeId: {}".format(TLV_TypeId))
 
       # print("index: {}/{}".format(index, len(dataByte_uint8)))
 
@@ -371,7 +377,7 @@ class DataFrame:
         tmp, CRC_index = Converter.uint8_2_uint32(dataByte, CRC_index)
         dataFrame.CRC32 += tmp
     except Exception as exception:
-      logger.log(event="DataFrame.parse", level="Warn", message="Error: {}".format(exception))
+      if log_enable: logger.log(event="DataFrame.parse", level="Warn", message="Error: {}".format(exception))
       dataFrame.CRC32 = 0
     
     # is complete DataFrame
