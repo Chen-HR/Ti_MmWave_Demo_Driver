@@ -22,9 +22,7 @@ except ModuleNotFoundError:
 if __name__ == '__main__':
   import math
   import datetime
-  import matplotlib.pyplot # matplotlib-3.8.1
-  import matplotlib.collections
-  import matplotlib.animation
+
 # %% 
 class Ti_mmWave:
 
@@ -271,6 +269,7 @@ class Ti_mmWave:
     if data is not None: 
       self.data = data
       self.buffer = self.buffer[index:]
+      # print(f"[{datetime.datetime.now()}] Data_Parse_unit")
   def Data_Parse_continuous(self, timeInterval: int | float | None = None, log: str | None = None) -> None:
     try:
       while self.Parse_active: 
@@ -294,10 +293,21 @@ class Ti_mmWave:
     self.config.set_FramePeriodicity(FramePeriodicity_ms)
   def get_detectedPoints(self, wait_new: bool = False) -> list[tuple]:
     while wait_new and self.data.CRC32 == self.crc32: pass
+    self.crc32 = self.data.CRC32
     return self.data.detectedPoints()
 
 # %%
 if __name__ == '__main__':
+  class Timer:
+    """Simple timer class to measure elapsed time."""
+    def __init__(self):
+      self.starttime = 0.0
+    def start(self):
+      """Start the timer."""
+      self.starttime = time.time()
+    def now(self):
+      """Get the elapsed time since starting the timer."""
+      return time.time() - self.starttime
   class AxisLimit_3d:
     class _AxisLimit:
       def __init__(self, min: int | float = 0, max: int | float = 1):
@@ -315,33 +325,33 @@ if __name__ == '__main__':
   device.Ctrl_Load_file("Profile\Profile-4.cfg")
   device.set_cfarRangeThreshold_dB(threshold_dB=14)
   device.set_removeStaticClutter(enabled=True)
-  device.set_framePeriodicity(FramePeriodicity_ms=200) # get as `device.config.parameter.framePeriodicity`
+  device.set_framePeriodicity(FramePeriodicity_ms=1000) # get as `device.config.parameter.framePeriodicity`
   device.Ctrl_Send()
   device.sensorStart()
 
   try:
     print("Begin execution")
-    def plot_3d(detectionLimit: AxisLimit_3d, device: Ti_mmWave):
-      figure: matplotlib.pyplot.Figure = matplotlib.pyplot.figure()
-      figure.set_label("mmWave Radar detection chart")
-      axes = figure.add_subplot(111, projection="3d")
-      axes.set_title("Detection distribution map")
-      axes.set(xlim3d=(detectionLimit.x.min, detectionLimit.x.max), xlabel="X")
-      axes.set(ylim3d=(detectionLimit.y.min, detectionLimit.y.max), ylabel="Y")
-      axes.set(zlim3d=(detectionLimit.z.min, detectionLimit.z.max), zlabel="Z")
-      def update(frame, scatter: matplotlib.collections.PathCollection, device: Ti_mmWave):
-        detectedPoints = device.get_detectedPoints(True)
-        detectedPoints = detectedPoints
-        scatter._offsets3d = tuple(zip(*detectedPoints)) if len(detectedPoints) != 0 else ([], [], [])
-      animation = matplotlib.animation.FuncAnimation(figure, update, fargs=(axes.scatter([], [], [], label='Detection Object'), device), interval=device.config.parameter.framePeriodicity*device.Parse_timeInterval, cache_frame_data=False)
-      axes.legend()
-      matplotlib.pyplot.show()
-    plot_3d(detectionLimit, device)
+    def frameDelay_tester():
+      timer = Timer()
+      delay = list()
+      timer.start()
+      try:
+        while True:
+          detectedPoints = device.get_detectedPoints(True)
+          delay_ = device.config.parameter.framePeriodicity - float(timer.now())
+          timer.start()
+          print(f"[{datetime.datetime.now()}] frame.delay: {delay_: 9.4f}, frame.detectedPoints: {detectedPoints}")
+          delay.append(delay_)
+      except KeyboardInterrupt:
+        print(f"[{datetime.datetime.now()}] frame.delay.average: {sum(delay)/len(delay): 9.4f}")
+    frameDelay_tester()
   except KeyboardInterrupt:
     pass
   finally:
     print("End execution")
+
   print("free device...")
   device.sensorStop()
   del device
+
 # %%

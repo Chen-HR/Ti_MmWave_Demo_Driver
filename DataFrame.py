@@ -1,6 +1,8 @@
 # %%
 import math
 import copy
+import datetime
+
 
 import numpy # Version: 1.26.0
 
@@ -139,6 +141,7 @@ class DataFrame:
     self.statsInfo:           DataFrame.StatsInfo           | None = DataFrame.StatsInfo()
 
     self.CRC32: numpy.uint32 | None = None
+    self.time: datetime.datetime | None = None
     self.iscomplete: bool = False
   def detectedPoints(self):
     return self.detectedObjects.detectedPoints()
@@ -151,8 +154,12 @@ class DataFrame:
       dataByte (bytearray): Parse data sources
       log (bool, optional): Enable logging to log. Defaults to False.
     """
+
     if log_enable: logger = Logging.Logger(log_file if log_file is not None else "Log/DataFrame.log", log_echo)
     dataFrame: DataFrame = DataFrame()
+
+    # Record parsing time
+    dataFrame.time = datetime.datetime.now()
 
     # checke dataByte parse range
     BASE_NUMBER_OF_BITS = 8
