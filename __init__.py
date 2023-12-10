@@ -70,7 +70,6 @@ class Ti_mmWave:
   # TODO: @Parse_timeInterval.setter
 
   def __del__(self):
-    print("Deleting device: ")
     if self.log_enable: self.logger.log(event="{}.deleting".format(self.__str__()), level="infomation", message="Delete device...")
     self.Ctrl_port.close()
     self.Data_port.close()
@@ -79,6 +78,8 @@ class Ti_mmWave:
 
   def __str__(self) -> str:
     return "Ti_mmWave('{platform}', '{Ctrl_port}', '{Data_port}', {Ctrl_port_baudrate}, {Data_port_baudrate})".format(platform=self.platform, Ctrl_port=self.Ctrl_port.name, Data_port=self.Data_port.name, Ctrl_port_baudrate=self.Ctrl_port_baudrate, Data_port_baudrate=self.Data_port_baudrate)
+  
+  # TODO: support `with mmWave(...) as mmWaveDevice:`
 
   def configure_unit(self, commandLine: str, wait: float | int = 0.05, log: bool = False):
     """unit configuration
@@ -197,7 +198,6 @@ class Ti_mmWave:
       self.Ctrl_Load(CFG_lines)
 
   def Ctrl_Send_unit(self, commandLine: str, timeInterval: float | int | None = None):
-    print(f"Ctrl_Send_unit.start:")
     self.Ctrl_port.write(commandLine.strip().__add__('\n').encode())
     if self.log_enable: self.logger.log(event="{}.Ctrl_Send_unit".format(self.__str__()), level="logging", message="commandLine: `{commandLine}`".format(commandLine=commandLine))
     command: str = commandLine.split(' ')[0]
@@ -212,7 +212,6 @@ class Ti_mmWave:
     try:
       time.sleep(timeInterval if timeInterval is not None else self.Send_timeInterval if self.Send_timeInterval is not None else 0.025)
     except Exception as exception:
-      print("Error: `{exception}`".format(exception=exception))
       if self.log_enable: self.logger.log(event="{}.Ctrl_Send_unit".format(self.__str__()), level="logging", message="Error: `{exception}`".format(exception=exception))
   def Ctrl_Send(self, commandLines: str | None = None, timeInterval: float | int | None = None):
     if commandLines is None: commandLines = self.config.command.commandLines()
@@ -319,7 +318,6 @@ if __name__ == '__main__':
   device.set_framePeriodicity(FramePeriodicity_ms=200) # get as `device.config.parameter.framePeriodicity`
   device.Ctrl_Send()
   device.sensorStart()
-  print("sensorStart")
 
   try:
     print("Begin execution")
@@ -343,9 +341,7 @@ if __name__ == '__main__':
     pass
   finally:
     print("End execution")
-  print(device.State)
-  device.sensorStop()
   print("free device...")
-  print(device.State)
+  device.sensorStop()
   del device
 # %%
