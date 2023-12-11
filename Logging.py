@@ -1,7 +1,8 @@
 import datetime
 
 # formatted_time = lambda timezone, format: datetime.datetime.now(tz=timezone).strftime(format)
-def formatted_time(timezone: datetime.tzinfo = datetime.timezone.utc, format: str = "%Y-%m-%d %H:%M:%S.%f") -> str: 
+# def formatted_time(timezone: datetime.tzinfo = datetime.timezone.utc, format: str = "%Y-%m-%d %H:%M:%S.%f") -> str: 
+def formatted_time(timezone: datetime.tzinfo | None = None, format: str = "%Y-%m-%d %H:%M:%S.%f") -> str: 
   return datetime.datetime.now(timezone).strftime(format)
 
 class Logger:
