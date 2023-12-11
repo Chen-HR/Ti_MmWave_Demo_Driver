@@ -17,7 +17,7 @@ class Logger:
         file.write(output + '\n')
         if self.echo: print(output)
     except NameError as nameError:
-      if self.echo: print(nameError)
+      pass
 
 if __name__ == '__main__':
   LoggerTester = Logger(fileName="LoggerTester.log")
